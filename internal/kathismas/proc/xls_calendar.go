@@ -2,16 +2,18 @@ package proc
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
-	"github.com/DjaPy/fot-twenty-readers-go/internal/kathismas"
-	"github.com/xuri/excelize/v2"
 	"strconv"
 	"time"
+
+	"github.com/DjaPy/fot-twenty-readers-go/internal/kathismas"
+	"github.com/xuri/excelize/v2"
 )
 
 const FONTTREBUCHET = "Trebuchet MS"
 
-func addKathismaNumbersToXLS(xls *excelize.File, number int, sheetName string) {
+func addKathismaNumbersToXLS(xls *excelize.File, number int, sheetName string) error {
 	style, err := xls.NewStyle(&excelize.Style{
 		Border: []excelize.Border{
 			{Type: "left", Color: "000000", Style: 3},
@@ -23,13 +25,22 @@ func addKathismaNumbersToXLS(xls *excelize.File, number int, sheetName string) {
 		Font:      &excelize.Font{Family: FONTTREBUCHET, Bold: true, Size: 16},
 	})
 	if err != nil {
-		panic(err)
+		return fmt.Errorf("failed create new style for xls %v", err)
 	}
-	xls.SetCellValue(sheetName, "A2", strconv.Itoa(number))
-	xls.SetCellStyle(sheetName, "A2", "A2", style)
+	var errs []error
+	err1 := xls.SetCellValue(sheetName, "A2", strconv.Itoa(number))
+	if err1 != nil {
+		errs = append(errs, err1)
+	}
+	err2 := xls.SetCellStyle(sheetName, "A2", "A2", style)
+	if err2 != nil {
+		errs = append(errs, err2)
+	}
+	return fmt.Errorf("failed work with cell %v", errors.Join(errs...))
+
 }
 
-func addHeaderOfMonthToWs(xls *excelize.File, sheetName string) {
+func addHeaderOfMonthToWs(xls *excelize.File, sheetName string) error {
 	cellAddressMonth := map[string]string{
 		"B2": "ЯНВ", "C2": "ФЕВ", "D2": "МАРТ", "E2": "АПР",
 		"F2": "МАЙ", "G2": "ИЮН", "H2": "ИЮЛ", "I2": "АВГ",
@@ -46,32 +57,55 @@ func addHeaderOfMonthToWs(xls *excelize.File, sheetName string) {
 		Font:      &excelize.Font{Family: "Calibri", Color: "FF8080", Size: 16},
 	})
 	if err != nil {
-		panic(err)
+		return fmt.Errorf("failed creat new style %v", err)
 	}
+	var errs []error
 	for k, v := range cellAddressMonth {
-		xls.SetCellValue(sheetName, k, v)
-		xls.SetCellStyle(sheetName, k, k, style)
+		err1 := xls.SetCellValue(sheetName, k, v)
+		if err1 != nil {
+			errs = append(errs, err1)
+			continue
+		}
+		err2 := xls.SetCellStyle(sheetName, k, k, style)
+		if err2 != nil {
+			errs = append(errs, err1)
+			continue
+		}
 	}
+	return errors.Join(errs...)
 }
 
-func addColumnWithNumberDayToWs(xls *excelize.File, sheetName string) {
+func addColumnWithNumberDayToWs(xls *excelize.File, sheetName string) error {
 	style, _ := xls.NewStyle(&excelize.Style{
 		Alignment: &excelize.Alignment{Horizontal: "center", Vertical: "center", WrapText: true},
 		Font:      &excelize.Font{Family: FONTTREBUCHET, Size: 12},
 	})
-
+	var errs []error
 	for number := 1; number <= 31; number++ {
 		numberCell := number + 2
 		cellNameLeft := fmt.Sprintf("A%d", numberCell)
 		cellNameRight := fmt.Sprintf("N%d", numberCell)
-		xls.SetCellValue(sheetName, cellNameLeft, strconv.Itoa(number))
-		xls.SetCellValue(sheetName, cellNameRight, strconv.Itoa(number))
-		xls.SetCellStyle(sheetName, cellNameLeft, cellNameLeft, style)
-		xls.SetCellStyle(sheetName, cellNameRight, cellNameRight, style)
+		err1 := xls.SetCellValue(sheetName, cellNameLeft, strconv.Itoa(number))
+		if err1 != nil {
+			errs = append(errs, err1)
+		}
+		err2 := xls.SetCellValue(sheetName, cellNameRight, strconv.Itoa(number))
+		if err2 != nil {
+			errs = append(errs, err2)
+		}
+		err3 := xls.SetCellStyle(sheetName, cellNameLeft, cellNameLeft, style)
+		if err3 != nil {
+			errs = append(errs, err3)
+		}
+		err4 := xls.SetCellStyle(sheetName, cellNameRight, cellNameRight, style)
+		if err4 != nil {
+			errs = append(errs, err4)
+		}
 	}
+	return errors.Join(errs...)
 }
 
-func getFrameNumberDay(symbol string, start int, end int) map[int]string {
+func getFrameNumberDay(symbol string, start, end int) map[int]string {
 	frameNumberDay := make(map[int]string)
 	for num := start; num <= end; num++ {
 		frameNumberDay[num] = symbol + strconv.Itoa(num)
@@ -85,7 +119,7 @@ func CreateCalendarForReaderToXLS(
 	allKathisma map[int]int,
 	year int,
 	sheetName string,
-) {
+) error {
 	style, _ := xls.NewStyle(&excelize.Style{
 		Alignment: &excelize.Alignment{Horizontal: "center", Vertical: "center", WrapText: true},
 		Font:      &excelize.Font{Family: FONTTREBUCHET, Size: 14, Color: "000000"},
@@ -96,9 +130,20 @@ func CreateCalendarForReaderToXLS(
 	}
 	frameNumberDayA := getFrameNumberDay("A", 3, 33) // A = 1
 	frameNumberDayN := getFrameNumberDay("N", 3, 33) // N = 1
+	var errs []error
+	textErr := "failed create calendar for reader %v"
 	for num := range frameNumberDayN {
-		xls.SetCellValue(sheetName, frameNumberDayN[num], strconv.Itoa(num-2))
-		xls.SetCellValue(sheetName, frameNumberDayA[num], strconv.Itoa(num-2))
+		err1 := xls.SetCellValue(sheetName, frameNumberDayN[num], strconv.Itoa(num-2))
+		if err1 != nil {
+			errs = append(errs, err1)
+		}
+		err2 := xls.SetCellValue(sheetName, frameNumberDayA[num], strconv.Itoa(num-2))
+		if err2 != nil {
+			errs = append(errs, err2)
+		}
+	}
+	if crErr := errors.Join(errs...); crErr != nil {
+		return fmt.Errorf(textErr, crErr)
 	}
 
 	for month, days := range calendarTable {
@@ -116,10 +161,20 @@ func CreateCalendarForReaderToXLS(
 			} else {
 				keyDayStr = strconv.Itoa(keyDay)
 			}
-			xls.SetCellValue(sheetName, cellName, keyDayStr)
-			xls.SetCellStyle(sheetName, cellName, cellName, style)
+			err1 := xls.SetCellValue(sheetName, cellName, keyDayStr)
+			if err1 != nil {
+				errs = append(errs, err1)
+			}
+			err2 := xls.SetCellStyle(sheetName, cellName, cellName, style)
+			if err2 != nil {
+				errs = append(errs, err2)
+			}
+		}
+		if crErr := errors.Join(errs...); crErr != nil {
+			return fmt.Errorf(textErr, crErr)
 		}
 	}
+	return nil
 }
 
 func CreateXlSCalendar(startDate time.Time, startKathisma, year int) (*bytes.Buffer, error) {
@@ -137,11 +192,26 @@ func CreateXlSCalendar(startDate time.Time, startKathisma, year int) (*bytes.Buf
 	}()
 	for pair := calendarKathismas.Oldest(); pair != nil; pair = pair.Next() {
 		sheetName := fmt.Sprintf("Чтец %d", pair.Key)
-		xls.NewSheet(sheetName)
-		addKathismaNumbersToXLS(xls, pair.Key, sheetName)
-		addHeaderOfMonthToWs(xls, sheetName)
-		addColumnWithNumberDayToWs(xls, sheetName)
-		CreateCalendarForReaderToXLS(xls, calendarTable, pair.Value, year, sheetName)
+
+		if _, err := xls.NewSheet(sheetName); err != nil {
+			return nil, fmt.Errorf("failed create sheet %v", err)
+		}
+		err1 := addKathismaNumbersToXLS(xls, pair.Key, sheetName)
+		if err1 != nil {
+			return nil, fmt.Errorf("failed add kafismas number %v", err1)
+		}
+		err2 := addHeaderOfMonthToWs(xls, sheetName)
+		if err2 != nil {
+			return nil, fmt.Errorf("failed create header of months %v", err2)
+		}
+		err3 := addColumnWithNumberDayToWs(xls, sheetName)
+		if err3 != nil {
+			return nil, fmt.Errorf("failed add column with number day %v", err3)
+		}
+		err4 := CreateCalendarForReaderToXLS(xls, calendarTable, pair.Value, year, sheetName)
+		if err4 != nil {
+			return nil, fmt.Errorf("failed create calendar %v", err4)
+		}
 		if startKathisma > 19 {
 			startKathisma = 0
 		}
@@ -150,7 +220,11 @@ func CreateXlSCalendar(startDate time.Time, startKathisma, year int) (*bytes.Buf
 	p := getPathForFile()
 	err := xls.SaveAs(p.outFile)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed save %v", err)
 	}
-	return xls.WriteToBuffer()
+	result, err := xls.WriteToBuffer()
+	if err != nil {
+		return nil, fmt.Errorf("failed write to buffer %v", err)
+	}
+	return result, nil
 }

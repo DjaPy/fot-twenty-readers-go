@@ -1,8 +1,9 @@
 package kathismas
 
 import (
-	"github.com/wk8/go-ordered-map/v2"
 	"time"
+
+	"github.com/wk8/go-ordered-map/v2"
 )
 
 func getTotalKathismas() [20]int {
@@ -14,7 +15,7 @@ func GetCalendarYear(startCalendarDate time.Time, year int) map[int][]int {
 	var currentDayList []int
 	currentMonth := 1
 
-	for {
+	for startCalendarDate.Year() != year+1 {
 		if startCalendarDate.Year() == year+1 {
 			break
 		}
@@ -52,9 +53,9 @@ func GetEasterDate(year int) time.Time {
 	return easter
 }
 
-func GetBoundaryDays(easterDay time.Time) (time.Time, time.Time) {
-	startNoReading := easterDay.AddDate(0, 0, -3)
-	endNoReading := easterDay.AddDate(0, 0, 6)
+func GetBoundaryDays(easterDay time.Time) (startNoReading, endNoReading time.Time) {
+	startNoReading = easterDay.AddDate(0, 0, -3)
+	endNoReading = easterDay.AddDate(0, 0, 6)
 	return startNoReading, endNoReading
 }
 

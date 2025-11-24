@@ -1,19 +1,20 @@
-package api
+package ports
 
 import (
 	"context"
 	"fmt"
-	"github.com/DjaPy/fot-twenty-readers-go/src/config"
-	"github.com/DjaPy/fot-twenty-readers-go/src/proc"
-	"github.com/go-chi/chi/v5"
-	"github.com/go-chi/render"
-	"github.com/go-pkgz/rest"
 	"html/template"
 	"log"
 	"net/http"
 	"strconv"
 	"sync"
 	"time"
+
+	"github.com/DjaPy/fot-twenty-readers-go/internal/kathismas/config"
+	"github.com/DjaPy/fot-twenty-readers-go/internal/kathismas/proc"
+	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/render"
+	"github.com/go-pkgz/rest"
 )
 
 type Server struct {
@@ -55,8 +56,7 @@ func (s *Server) Run(ctx context.Context, port int) {
 		IdleTimeout:       30 * time.Second,
 	}
 	serverLock.Unlock()
-	var err error
-	err = s.httpServer.ListenAndServe()
+	err := s.httpServer.ListenAndServe()
 	log.Printf("[WARN] http server terminated, %s", err)
 }
 
@@ -110,7 +110,14 @@ func (s *Server) createCalendar(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Disposition", "attachment; filename=\"file.xlsx\"")
 
 	w.WriteHeader(http.StatusOK)
-	w.Write(file.Bytes())
+	_, err = w.Write(file.Bytes())
+	if err != nil {
+		render.Status(r, http.StatusInternalServerError)
+		render.JSON(w, r, rest.JSON{"error": err.Error()})
+		return
+	}
+	render.Status(r, http.StatusCreated)
+	render.JSON(w, r, rest.JSON{"result": "All created"})
 }
 
 func (s *Server) renderErrorPage(w http.ResponseWriter, r *http.Request, err error, errCode int) { // nolint

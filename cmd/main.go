@@ -3,11 +3,12 @@ package main
 import (
 	"context"
 	"fmt"
-	"github.com/DjaPy/fot-twenty-readers-go/src/api"
-	"github.com/DjaPy/fot-twenty-readers-go/src/config"
+	"os"
+
+	"github.com/DjaPy/fot-twenty-readers-go/internal/kathismas/config"
+	"github.com/DjaPy/fot-twenty-readers-go/internal/kathismas/ports"
 	log "github.com/go-pkgz/lgr"
 	"github.com/jessevdk/go-flags"
-	"os"
 )
 
 type options struct {
@@ -26,13 +27,13 @@ func main() {
 	}
 	setupLog(opts.Dbg)
 
-	var conf = &config.Conf{}
+	ctx := context.Background()
 
-	server := api.Server{
+	srv := &ports.Server{
 		Version: revision,
-		Conf:    *conf,
+		Conf:    config.Conf{},
 	}
-	server.Run(context.Background(), opts.Port)
+	srv.Run(ctx, opts.Port)
 }
 
 func setupLog(dbg bool) {

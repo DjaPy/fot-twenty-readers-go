@@ -5,3 +5,7 @@ type Conf struct {
 		BaseUrl string `yaml:"baseUrl"`
 	}
 }
+
+func NewConf() {
+	println("new conf")
+}

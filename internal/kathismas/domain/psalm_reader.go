@@ -1,8 +1,10 @@
 package domain
 
 import (
-	"github.com/gofrs/uuid/v5"
+	"fmt"
 	"time"
+
+	"github.com/gofrs/uuid/v5"
 )
 
 type PsalmReader struct {
@@ -18,7 +20,7 @@ type PsalmReader struct {
 func NewPsalmReader(username string, telegramID int64, phone string) (*PsalmReader, error) {
 	ID, err := uuid.NewV7()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed generate uuid7 %v", err)
 	}
 	createdAt := time.Now()
 	updatedAt := time.Now()
@@ -38,7 +40,7 @@ func UnmarshallPsalmReader(
 	username string,
 	telegramID int64,
 	phone string,
-	CalendarID uuid.UUID,
+	calendarID uuid.UUID,
 	createdAt time.Time,
 	updatedAt time.Time,
 ) *PsalmReader {
@@ -47,7 +49,7 @@ func UnmarshallPsalmReader(
 		Username:   username,
 		TelegramID: telegramID,
 		Phone:      phone,
-		CalendarID: CalendarID,
+		CalendarID: calendarID,
 		CreatedAt:  createdAt,
 		UpdatedAt:  updatedAt,
 	}

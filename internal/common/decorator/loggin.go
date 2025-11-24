@@ -29,5 +29,5 @@ func (d commandLoggingDecorator[C]) Handle(ctx context.Context, cmd C) (err erro
 		}
 	}()
 
-	return d.base.Handle(ctx, cmd)
+	return d.base.Handle(ctx, cmd) //nolint:wrapcheck // err repeated
 }

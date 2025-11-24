@@ -2,11 +2,13 @@ package adapters
 
 import (
 	"errors"
-	"github.com/DjaPy/fot-twenty-readers-go/src/domain"
-	"github.com/asdine/storm/v3"
-	"github.com/gofrs/uuid/v5"
+	"fmt"
 	"log"
 	"time"
+
+	"github.com/DjaPy/fot-twenty-readers-go/internal/kathismas/domain"
+	"github.com/asdine/storm/v3"
+	"github.com/gofrs/uuid/v5"
 )
 
 type CalendarOfReaderDB struct {
@@ -27,13 +29,19 @@ func NewCalendarOfReaderRepository(db *storm.DB) *CalendarOfReaderRepository {
 	return &CalendarOfReaderRepository{db: db}
 }
 
-func (cr CalendarOfReaderRepository) GetCalendar(id uuid.UUID) (*CalendarOfReaderDB, error) {
-	var calendarOfReader CalendarOfReaderDB
-	err := cr.db.One("ID", id, &calendarOfReader)
+func (cr CalendarOfReaderRepository) GetCalendar(id uuid.UUID) (*domain.CalendarOfReader, error) {
+	var CalendarOfReaderFromDB CalendarOfReaderDB
+	err := cr.db.One("ID", id, &CalendarOfReaderFromDB)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("getting calendar by id %v", err)
 	}
-	return &calendarOfReader, nil
+	CalendarOfReader := domain.UnmarshallCalendarOfReader(
+		CalendarOfReaderFromDB.ID,
+		CalendarOfReaderFromDB.Calendar,
+		CalendarOfReaderFromDB.CreatedAt,
+		CalendarOfReaderFromDB.UpdatedAt,
+	)
+	return CalendarOfReader, nil
 }
 
 func (cr CalendarOfReaderRepository) CreateCalendarOfReader(
@@ -42,7 +50,7 @@ func (cr CalendarOfReaderRepository) CreateCalendarOfReader(
 	err := cr.db.Save(&calendarOfReader)
 	if err != nil {
 		if errors.Is(err, storm.ErrAlreadyExists) {
-			return err
+			return fmt.Errorf("failed created calendar of reader")
 		}
 	}
 	return nil

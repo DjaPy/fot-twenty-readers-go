@@ -3,11 +3,13 @@ package adapters
 import (
 	"context"
 	"errors"
-	"github.com/DjaPy/fot-twenty-readers-go/src/domain"
-	"github.com/asdine/storm/v3"
-	"github.com/gofrs/uuid/v5"
+	"fmt"
 	"log"
 	"time"
+
+	"github.com/DjaPy/fot-twenty-readers-go/internal/kathismas/domain"
+	"github.com/asdine/storm/v3"
+	"github.com/gofrs/uuid/v5"
 )
 
 type PsalmReaderTGDB struct {
@@ -35,7 +37,7 @@ func (pr PsalmReaderTGRepository) GetPsalmReaderTG(ctx context.Context, id uuid.
 	var dbPsalmReaderTG PsalmReaderTGDB
 	err := pr.db.One("ID", id, &dbPsalmReaderTG)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("error getting psalm reader: %v", err)
 	}
 
 	psalmReaderTG := domain.UnmarshallPsalmReader(
@@ -54,7 +56,7 @@ func (pr PsalmReaderTGRepository) CreatePsalmReaderTG(ctx context.Context, psalm
 	err := pr.db.Save(&psalmReader)
 	if err != nil {
 		if errors.Is(err, storm.ErrAlreadyExists) {
-			return err
+			return fmt.Errorf("psalm reader already exists: %v", err)
 		}
 	}
 	return nil

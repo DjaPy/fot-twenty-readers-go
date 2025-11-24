@@ -16,10 +16,11 @@ type commandMetricsDecorator[C any] struct {
 	client MetricsClient
 }
 
-func (d commandMetricsDecorator[C]) Handle(ctx context.Context, cmd C) (err error) {
+func (d commandMetricsDecorator[C]) Handle(ctx context.Context, cmd C) error {
 	start := time.Now()
 
 	actionName := strings.ToLower(generateActionName(cmd))
+	var err error
 
 	defer func() {
 		end := time.Since(start)
@@ -32,6 +33,6 @@ func (d commandMetricsDecorator[C]) Handle(ctx context.Context, cmd C) (err erro
 			d.client.Inc(fmt.Sprintf("commands.%s.failure", actionName), 1)
 		}
 	}()
-
-	return d.base.Handle(ctx, cmd)
+	err = fmt.Errorf("failed handled %v", d.base.Handle(ctx, cmd))
+	return err
 }

@@ -2,9 +2,11 @@ package command
 
 import (
 	"context"
-	"github.com/DjaPy/fot-twenty-readers-go/decorator"
-	"github.com/DjaPy/fot-twenty-readers-go/src/adapters"
-	"github.com/DjaPy/fot-twenty-readers-go/src/domain"
+
+	"github.com/DjaPy/fot-twenty-readers-go/internal/common/decorator"
+	"github.com/DjaPy/fot-twenty-readers-go/internal/common/errors"
+	"github.com/DjaPy/fot-twenty-readers-go/internal/kathismas/adapters"
+	"github.com/DjaPy/fot-twenty-readers-go/internal/kathismas/domain"
 	"github.com/sirupsen/logrus"
 )
 
@@ -17,46 +19,31 @@ type CreatePsalmReaderTG struct {
 type CreateCalendarOfReaderHandler decorator.CommandHandler[CreatePsalmReaderTG]
 
 type createPsalmReaderTGHandler struct {
-	repo                 adapters.PsalmReaderTGRepository
-	psalmReaderTGService PsalmReaderTGService
+	repo *adapters.PsalmReaderTGRepository
 }
 
 func NewCreatePsalmReaderTGHandler(
-	repo adapters.PsalmReaderTGRepository,
-	psalmReaderTGService PsalmReaderTGService,
+	repo *adapters.PsalmReaderTGRepository,
 	logger *logrus.Entry,
 	metricsClient decorator.MetricsClient,
 ) decorator.CommandHandler[CreatePsalmReaderTG] {
-	if repo == nil {
-		panic("nil repo")
-	}
-	if userService == nil {
-		panic("nil userService")
-	}
-	if trainerService == nil {
-		panic("nil trainerService")
-	}
-
 	return decorator.ApplyCommandDecorators[CreatePsalmReaderTG](
-		createPsalmReaderTGHandler{repo, psalmReaderTGService},
+		createPsalmReaderTGHandler{repo: repo},
 		logger,
 		metricsClient,
 	)
 }
 
 func (cpr createPsalmReaderTGHandler) Handle(ctx context.Context, cmd CreatePsalmReaderTG) error {
-	defer func() {
-		//logs.LogCommandExecution("ApproveTrainingReschedule", cmd, err)
-	}()
 
 	prTG, err := domain.NewPsalmReader(cmd.Username, cmd.TelegramID, cmd.Phone)
 	if err != nil {
-		return err
+		return err //nolint:wrapcheck // err repeat
 	}
 
 	err = cpr.repo.CreatePsalmReaderTG(ctx, prTG)
 	if err != nil {
-		return err
+		return errors.NewSlugError(err.Error(), "unable-to-create-psalm-reader-tg-availability")
 	}
 	return nil
 }

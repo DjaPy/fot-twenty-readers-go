@@ -5,7 +5,7 @@ import (
 	"time"
 )
 
-func getGenLoop(startLoop int, endLoop int) []int {
+func getGenLoop(startLoop, endLoop int) []int {
 	newLoop := make([]int, 0)
 	for i := startLoop; i < endLoop+1; i++ {
 		newLoop = append(newLoop, i)
@@ -27,14 +27,10 @@ func cycleSlice(genLoop []int, loopFromTotalKathisma [20]int) map[int]int {
 }
 
 func getCalendarMap(
-	endNumberKathismaFirstLoop int,
-	loopFromTotalKathisma [20]int,
-	numberDaysInYear int,
-	startZeroLoopSecond int,
-	stepKathisma int,
-) (map[int]int, map[int]int) {
+	endNumberKathismaFirstLoop, numberDaysInYear, startZeroLoopSecond, stepKathisma int, loopFromTotalKathisma [20]int,
+) (loopSecond, zeroLoopSecond map[int]int) {
 	startNumberKathismaZeroLoopSecond := endNumberKathismaFirstLoop + stepKathisma
-	zeroLoopSecond := make(map[int]int)
+	zeroLoopSecond = make(map[int]int)
 	count := 0
 	for kathisma := startNumberKathismaZeroLoopSecond; kathisma < 21; kathisma++ {
 		zeroLoopSecond[count+startZeroLoopSecond] = kathisma
@@ -42,7 +38,7 @@ func getCalendarMap(
 	}
 	startLoopSecond := startZeroLoopSecond + len(zeroLoopSecond)
 	genLoopSecond := getGenLoop(startLoopSecond, numberDaysInYear+1)
-	loopSecond := cycleSlice(genLoopSecond, loopFromTotalKathisma)
+	loopSecond = cycleSlice(genLoopSecond, loopFromTotalKathisma)
 	return loopSecond, zeroLoopSecond
 }
 
@@ -68,10 +64,10 @@ func GetListDate(
 	endNumberKathismaFirstLoop := loopFirst[endLoopFirst]
 	loopSecond, zeroLoopSecond := getCalendarMap(
 		endNumberKathismaFirstLoop,
-		loopFromTotalKathisma,
 		numberDaysInYear,
 		startZeroLoopSecond,
 		stepKathisma,
+		loopFromTotalKathisma,
 	)
 	maps.Copy(zeroLoopFirst, loopFirst)
 	maps.Copy(zeroLoopSecond, loopSecond)
