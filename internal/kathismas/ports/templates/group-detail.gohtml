@@ -1,0 +1,115 @@
+{{define "content"}}
+<div class="max-w-4xl mx-auto">
+    <!-- Back button -->
+    <a href="/groups" class="inline-flex items-center text-blue-600 hover:text-blue-700 mb-6">
+        <svg class="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+        </svg>
+        Назад к группам
+    </a>
+
+    <!-- Group Header -->
+    <div class="bg-white rounded-lg shadow p-6 mb-6">
+        <div class="flex justify-between items-start">
+            <div>
+                <h1 class="text-2xl font-bold text-gray-900">{{.Name}}</h1>
+                <div class="mt-2 flex items-center space-x-4 text-sm text-gray-600">
+                    <span>📊 Стартовая кафизма: {{.StartOffset}}</span>
+                    <span>👥 Чтецов: {{len .Readers}}/20</span>
+                </div>
+                <p class="mt-2 text-xs text-gray-400">
+                    Создана: {{.CreatedAt}} | Обновлена: {{.UpdatedAt}}
+                </p>
+            </div>
+
+            <div class="flex space-x-2">
+                <form action="/groups/{{.ID}}/generate" method="post" class="inline">
+                    <input type="hidden" name="year" value="2025">
+                    <button type="submit"
+                            class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition">
+                        📥 Сгенерировать календарь 2025
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Readers List -->
+    <div class="bg-white rounded-lg shadow">
+        <div class="p-6 border-b border-gray-200 flex justify-between items-center">
+            <h2 class="text-lg font-semibold text-gray-900">Чтецы</h2>
+            <button onclick="openReaderModal('{{.ID}}')"
+                    class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition text-sm">
+                + Добавить чтеца
+            </button>
+        </div>
+
+        <div class="divide-y divide-gray-200">
+            {{range $index, $reader := .Readers}}
+            <div class="p-4 hover:bg-gray-50">
+                <div class="flex justify-between items-center">
+                    <div>
+                        <h3 class="font-medium text-gray-900">{{add $index 1}}. {{$reader.Username}}</h3>
+                        <div class="mt-1 text-sm text-gray-500 space-x-4">
+                            {{if $reader.TelegramID}}
+                            <span>📱 TG: {{$reader.TelegramID}}</span>
+                            {{end}}
+                            {{if $reader.Phone}}
+                            <span>☎️ {{$reader.Phone}}</span>
+                            {{end}}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {{else}}
+            <div class="p-8 text-center text-gray-500">
+                <p>Чтецов пока нет. Добавьте первого чтеца.</p>
+            </div>
+            {{end}}
+        </div>
+    </div>
+</div>
+
+<!-- Same reader modal as in groups.gohtml -->
+<div id="reader-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+        <h3 class="text-lg font-semibold mb-4">Добавить чтеца</h3>
+        <form action="/groups/{{.ID}}/readers" method="post" class="space-y-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Имя</label>
+                <input type="text" name="username" required
+                       class="w-full px-3 py-2 border border-gray-300 rounded-md">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Telegram ID (опционально)</label>
+                <input type="number" name="telegram_id"
+                       class="w-full px-3 py-2 border border-gray-300 rounded-md">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">Телефон (опционально)</label>
+                <input type="tel" name="phone"
+                       class="w-full px-3 py-2 border border-gray-300 rounded-md">
+            </div>
+            <div class="flex space-x-2">
+                <button type="submit" class="flex-1 bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700">
+                    Добавить
+                </button>
+                <button type="button" onclick="closeReaderModal()"
+                        class="flex-1 bg-gray-200 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-300">
+                    Отмена
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    function openReaderModal(groupId) {
+        document.getElementById('reader-modal').classList.remove('hidden');
+    }
+
+    function closeReaderModal() {
+        document.getElementById('reader-modal').classList.add('hidden');
+    }
+</script>
+{{end}}

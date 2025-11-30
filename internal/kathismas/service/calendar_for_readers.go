@@ -1,9 +1,9 @@
-package kathismas
+package service
 
 import (
 	"time"
 
-	"github.com/wk8/go-ordered-map/v2"
+	orderedmap "github.com/wk8/go-ordered-map/v2"
 )
 
 func getTotalKathismas() [20]int {
@@ -81,6 +81,28 @@ func CreateCalendar(startDate time.Time, startKathisma, year int) *orderedmap.Or
 		}
 		readersMap.Set(numberKathisma, allKathismas)
 		startKathisma += 1
+	}
+	return readersMap
+}
+
+func CreateCalendarForGroup(startOffset, year int) *orderedmap.OrderedMap[int, map[int]int] {
+	if year == 0 {
+		year = time.Now().Year()
+	}
+	easterDay := GetEasterDate(year)
+	startNoReading, endNoReading := GetBoundaryDays(easterDay)
+	numberDaysInYear := GetNumberDaysInYear(year)
+	totalKathismas := getTotalKathismas()
+	readersMap := orderedmap.New[int, map[int]int]()
+
+	currentKathisma := startOffset
+	for _, readerNumber := range totalKathismas {
+		allKathismas := GetListDate(startNoReading, endNoReading, currentKathisma, numberDaysInYear, totalKathismas)
+		readersMap.Set(readerNumber, allKathismas)
+		currentKathisma++
+		if currentKathisma > 20 {
+			currentKathisma = 1
+		}
 	}
 	return readersMap
 }

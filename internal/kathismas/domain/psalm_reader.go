@@ -12,7 +12,6 @@ type PsalmReader struct {
 	Username   string
 	TelegramID int64
 	Phone      string
-	CalendarID uuid.UUID
 	CreatedAt  time.Time
 	UpdatedAt  time.Time
 }
@@ -29,7 +28,6 @@ func NewPsalmReader(username string, telegramID int64, phone string) (*PsalmRead
 		Username:   username,
 		TelegramID: telegramID,
 		Phone:      phone,
-		CalendarID: uuid.Nil,
 		CreatedAt:  createdAt,
 		UpdatedAt:  updatedAt,
 	}, nil
@@ -40,7 +38,6 @@ func UnmarshallPsalmReader(
 	username string,
 	telegramID int64,
 	phone string,
-	calendarID uuid.UUID,
 	createdAt time.Time,
 	updatedAt time.Time,
 ) *PsalmReader {
@@ -49,7 +46,6 @@ func UnmarshallPsalmReader(
 		Username:   username,
 		TelegramID: telegramID,
 		Phone:      phone,
-		CalendarID: calendarID,
 		CreatedAt:  createdAt,
 		UpdatedAt:  updatedAt,
 	}

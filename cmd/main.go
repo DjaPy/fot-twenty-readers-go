@@ -3,10 +3,12 @@ package main
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"os"
 
 	"github.com/DjaPy/fot-twenty-readers-go/internal/kathismas/config"
 	"github.com/DjaPy/fot-twenty-readers-go/internal/kathismas/ports"
+	"github.com/DjaPy/fot-twenty-readers-go/internal/kathismas/service"
 	log "github.com/go-pkgz/lgr"
 	"github.com/jessevdk/go-flags"
 )
@@ -20,18 +22,22 @@ type options struct {
 var revision = "local"
 
 func main() {
-	fmt.Printf("For twenty readers %s\n", revision)
+	slog.Info(fmt.Sprintf("For twenty readers %s\n", revision))
 	var opts options
 	if _, err := flags.Parse(&opts); err != nil {
+		slog.Error(err.Error())
 		os.Exit(1)
 	}
 	setupLog(opts.Dbg)
 
 	ctx := context.Background()
+	app := service.NewApplication(ctx)
+	defer app.Close()
 
 	srv := &ports.Server{
 		Version: revision,
 		Conf:    config.Conf{},
+		App:     app,
 	}
 	srv.Run(ctx, opts.Port)
 }

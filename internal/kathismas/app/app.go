@@ -2,6 +2,7 @@ package app
 
 import (
 	"github.com/DjaPy/fot-twenty-readers-go/internal/kathismas/app/command"
+	"github.com/DjaPy/fot-twenty-readers-go/internal/kathismas/app/query"
 )
 
 type Application struct {
@@ -25,8 +26,13 @@ func (a *Application) Close() {
 }
 
 type Commands struct {
-	CreateCalendarOfReader command.CreateCalendarOfReaderHandler
+	CreateCalendarOfReader   command.CreateCalendarOfReaderHandler
+	CreateReaderGroup        command.CreateReaderGroupHandler
+	AddReaderToGroup         command.AddReaderToGroupHandler
+	GenerateCalendarForGroup command.GenerateCalendarForGroupHandler
 }
 
 type Queries struct {
+	ListReaderGroups query.ListReaderGroupsHandler
+	GetReaderGroup   query.GetReaderGroupHandler
 }

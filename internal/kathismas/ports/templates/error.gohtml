@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <title>For twenty readers - {{.Status}}</title>
+    </head>
+    <body>
+        <article>
+            <h1>Something went wrong!</h1>
+            <p></p>
+            <div>
+                <p>Sorry for the inconvenience but we&rsquo;re performing some maintenance at the moment.</p>
+                <div class="err">
+                <p><span class="red-text">{{.Status}} – {{.Error}}</span></p>
+                </div>
+                <p>&mdash; The Team</p>
+            </div>
+        </article>
+    </body>
+</html>

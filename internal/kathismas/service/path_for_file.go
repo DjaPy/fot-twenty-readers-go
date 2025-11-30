@@ -1,4 +1,4 @@
-package proc
+package service
 
 import (
 	"os"

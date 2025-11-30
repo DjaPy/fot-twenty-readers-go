@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        {{if .Title}}
+        <title>{{ .Title }} - for twenty</title>
+        {{ else }}
+        <title>Assistance to the curator of the reader</title>
+        {{ end }}
+    </head>
+    <body>
+        <div>For twenty</div>
+        <form action="/calendar/create" method="post">
+            <p>
+                <label for="start_date_kathisma">Calendar start day<br></label>
+                <input id="start_date_kathisma" type="date" name="start_date_kathisma" required pattern="\d{2}/\d{2}/\d{4}">
+                <span class="validity"></span>
+            </p>
+            <p>
+                <label for="start_kathisma">First kathisma in year for first reader<br></label>
+                <input id="start_kathisma" type="number" name="start_kathisma">
+            </p>
+            <p>
+                <label for="year">Year for calendar<br></label>
+                <input id="year" type="number" name="year">
+            </p>
+            <input type="submit" value="Save">
+        </form>
+    </body>
+</html>

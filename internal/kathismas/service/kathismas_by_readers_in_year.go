@@ -1,4 +1,4 @@
-package kathismas
+package service
 
 import (
 	"maps"

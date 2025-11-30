@@ -17,7 +17,6 @@ type PsalmReaderTGDB struct {
 	Username   string    `storm:"index"`
 	TelegramID int64     `storm:"index, unique"`
 	Phone      string
-	CalendarID uuid.UUID `storm:"index"`
 	CreatedAt  time.Time `storm:"index"`
 	UpdatedAt  time.Time
 }
@@ -45,7 +44,6 @@ func (pr PsalmReaderTGRepository) GetPsalmReaderTG(ctx context.Context, id uuid.
 		dbPsalmReaderTG.Username,
 		dbPsalmReaderTG.TelegramID,
 		dbPsalmReaderTG.Phone,
-		dbPsalmReaderTG.CalendarID,
 		dbPsalmReaderTG.CreatedAt,
 		dbPsalmReaderTG.UpdatedAt,
 	)

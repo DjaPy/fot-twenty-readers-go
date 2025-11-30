@@ -1,4 +1,4 @@
-package proc
+package service
 
 import (
 	"bytes"
@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/DjaPy/fot-twenty-readers-go/internal/kathismas"
+	"github.com/DjaPy/fot-twenty-readers-go/internal/kathismas/domain"
 	"github.com/xuri/excelize/v2"
 )
 
@@ -226,5 +227,65 @@ func CreateXlSCalendar(startDate time.Time, startKathisma, year int) (*bytes.Buf
 	if err != nil {
 		return nil, fmt.Errorf("failed write to buffer %v", err)
 	}
+	return result, nil
+}
+
+type CalendarGeneratorImpl struct{}
+
+func NewCalendarGenerator() *CalendarGeneratorImpl {
+	return &CalendarGeneratorImpl{}
+}
+
+func (g *CalendarGeneratorImpl) GenerateForGroup(group *domain.ReaderGroup, year int) (*bytes.Buffer, error) {
+	if year == 0 {
+		year = time.Now().Year()
+	}
+
+	startDate := time.Date(year, time.January, 1, 0, 0, 0, 0, time.UTC)
+	calendarTable := kathismas.GetCalendarYear(startDate, year)
+	calendarKathismas := kathismas.CreateCalendarForGroup(group.StartOffset, year)
+
+	xls := excelize.NewFile()
+	defer func() {
+		if err := xls.Close(); err != nil {
+			fmt.Println(err)
+		}
+	}()
+
+	for pair := calendarKathismas.Oldest(); pair != nil; pair = pair.Next() {
+		sheetName := fmt.Sprintf("Чтец %d", pair.Key)
+
+		if _, err := xls.NewSheet(sheetName); err != nil {
+			return nil, fmt.Errorf("failed create sheet %v", err)
+		}
+		err1 := addKathismaNumbersToXLS(xls, pair.Key, sheetName)
+		if err1 != nil {
+			return nil, fmt.Errorf("failed add kafismas number %v", err1)
+		}
+		err2 := addHeaderOfMonthToWs(xls, sheetName)
+		if err2 != nil {
+			return nil, fmt.Errorf("failed create header of months %v", err2)
+		}
+		err3 := addColumnWithNumberDayToWs(xls, sheetName)
+		if err3 != nil {
+			return nil, fmt.Errorf("failed add column with number day %v", err3)
+		}
+		err4 := CreateCalendarForReaderToXLS(xls, calendarTable, pair.Value, year, sheetName)
+		if err4 != nil {
+			return nil, fmt.Errorf("failed create calendar %v", err4)
+		}
+	}
+
+	p := getPathForFile()
+	err := xls.SaveAs(p.outFile)
+	if err != nil {
+		return nil, fmt.Errorf("failed save %v", err)
+	}
+
+	result, err := xls.WriteToBuffer()
+	if err != nil {
+		return nil, fmt.Errorf("failed write to buffer %v", err)
+	}
+
 	return result, nil
 }
