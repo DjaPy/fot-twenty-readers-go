@@ -14,7 +14,7 @@ import (
 	"github.com/DjaPy/fot-twenty-readers-go/internal/kathismas/app/command"
 	"github.com/DjaPy/fot-twenty-readers-go/internal/kathismas/app/query"
 	"github.com/DjaPy/fot-twenty-readers-go/internal/kathismas/config"
-	"github.com/DjaPy/fot-twenty-readers-go/internal/kathismas/proc"
+	"github.com/DjaPy/fot-twenty-readers-go/internal/kathismas/service"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/render"
 	"github.com/go-pkgz/rest"
@@ -287,7 +287,7 @@ func (s *Server) createCalendar(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	file, err := proc.CreateXlSCalendar(date, entry.StartKathisma, entry.Year)
+	file, err := service.CreateXlSCalendar(date, entry.StartKathisma, entry.Year)
 	if err != nil {
 		render.Status(r, http.StatusBadRequest)
 		render.JSON(w, r, rest.JSON{"error": err.Error()})

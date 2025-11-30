@@ -11,7 +11,7 @@ import (
 	"github.com/DjaPy/fot-twenty-readers-go/internal/kathismas/app"
 	"github.com/DjaPy/fot-twenty-readers-go/internal/kathismas/app/command"
 	"github.com/DjaPy/fot-twenty-readers-go/internal/kathismas/app/query"
-	"github.com/DjaPy/fot-twenty-readers-go/internal/kathismas/proc"
+	"github.com/DjaPy/fot-twenty-readers-go/internal/kathismas/service"
 	"github.com/asdine/storm/v3"
 	"github.com/asdine/storm/v3/codec/json"
 	"github.com/sirupsen/logrus"
@@ -34,7 +34,7 @@ func NewApplication(ctx context.Context) *app.Application {
 
 	psalmReaderTGRepository := adapters.NewPsalmReaderTGRepository(db)
 	readerGroupRepository := adapters.NewReaderGroupRepository(db)
-	calendarGenerator := proc.NewCalendarGenerator()
+	calendarGenerator := service.NewCalendarGenerator()
 
 	return app.NewApplication(
 		app.Commands{

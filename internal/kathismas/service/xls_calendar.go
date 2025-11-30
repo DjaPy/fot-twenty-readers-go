@@ -7,8 +7,8 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/DjaPy/fot-twenty-readers-go/internal/kathismas"
 	"github.com/DjaPy/fot-twenty-readers-go/internal/kathismas/domain"
+	"github.com/DjaPy/fot-twenty-readers-go/internal/kathismas/service"
 	"github.com/xuri/excelize/v2"
 )
 
@@ -182,8 +182,8 @@ func CreateXlSCalendar(startDate time.Time, startKathisma, year int) (*bytes.Buf
 	if year == 0 {
 		year = startDate.Year()
 	}
-	calendarTable := kathismas.GetCalendarYear(startDate, year)
-	calendarKathismas := kathismas.CreateCalendar(startDate, startKathisma, year)
+	calendarTable := service.GetCalendarYear(startDate, year)
+	calendarKathismas := service.CreateCalendar(startDate, startKathisma, year)
 
 	xls := excelize.NewFile()
 	defer func() {
@@ -242,8 +242,8 @@ func (g *CalendarGeneratorImpl) GenerateForGroup(group *domain.ReaderGroup, year
 	}
 
 	startDate := time.Date(year, time.January, 1, 0, 0, 0, 0, time.UTC)
-	calendarTable := kathismas.GetCalendarYear(startDate, year)
-	calendarKathismas := kathismas.CreateCalendarForGroup(group.StartOffset, year)
+	calendarTable := service.GetCalendarYear(startDate, year)
+	calendarKathismas := service.CreateCalendarForGroup(group.StartOffset, year)
 
 	xls := excelize.NewFile()
 	defer func() {
