@@ -10,11 +10,11 @@ import (
 	"sync"
 	"time"
 
+	"github.com/DjaPy/fot-twenty-readers-go/internal/kathismas/adapters/excel"
 	"github.com/DjaPy/fot-twenty-readers-go/internal/kathismas/app"
 	"github.com/DjaPy/fot-twenty-readers-go/internal/kathismas/app/command"
 	"github.com/DjaPy/fot-twenty-readers-go/internal/kathismas/app/query"
 	"github.com/DjaPy/fot-twenty-readers-go/internal/kathismas/config"
-	"github.com/DjaPy/fot-twenty-readers-go/internal/kathismas/service"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/render"
 	"github.com/go-pkgz/rest"
@@ -63,8 +63,8 @@ func (s *Server) Run(ctx context.Context, port int) {
 		Addr:              fmt.Sprintf(":%d", port),
 		Handler:           s.router(),
 		ReadHeaderTimeout: 5 * time.Second,
-		WriteTimeout:      30 * time.Second,
-		IdleTimeout:       30 * time.Second,
+		WriteTimeout:      120 * time.Second,
+		IdleTimeout:       60 * time.Second,
 	}
 	serverLock.Unlock()
 	err := s.httpServer.ListenAndServe()
@@ -75,14 +75,11 @@ func (s *Server) router() *chi.Mux {
 	router := chi.NewRouter()
 	router.Use(rest.AppInfo("for-twenty-readers", "djapy", s.Version), rest.Ping)
 
-	// Redirect root to groups
 	router.Get("/", s.groupsPage)
 
-	// Old calendar endpoints
 	router.Get("/calendar", s.calendar)
 	router.Post("/calendar", s.createCalendar)
 
-	// New groups endpoints
 	router.Get("/groups", s.groupsPage)
 	router.Get("/groups/list", s.listGroupsPartial)
 	router.Post("/groups", s.createGroup)
@@ -106,7 +103,6 @@ func (s *Server) groupsPage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Need to execute the content template
 	if err := s.templates.ExecuteTemplate(w, "groups.gohtml", nil); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
@@ -120,7 +116,15 @@ func (s *Server) listGroupsPartial(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := s.templates.ExecuteTemplate(w, "group-list-item.gohtml", groups); err != nil {
+	data := struct {
+		Groups      []query.ReaderGroupDTO
+		CurrentYear int
+	}{
+		Groups:      groups,
+		CurrentYear: time.Now().Year(),
+	}
+
+	if err := s.templates.ExecuteTemplate(w, "group-list-item.gohtml", data); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 }
@@ -149,16 +153,22 @@ func (s *Server) createGroup(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		groups := []query.ReaderGroupDTO{{
-			ID:             group.ID,
-			Name:           group.Name,
-			StartOffset:    group.StartOffset,
-			ReadersCount:   len(group.Readers),
-			CalendarsCount: 0,
-			CreatedAt:      group.CreatedAt,
-		}}
+		data := struct {
+			Groups      []query.ReaderGroupDTO
+			CurrentYear int
+		}{
+			Groups: []query.ReaderGroupDTO{{
+				ID:             group.ID,
+				Name:           group.Name,
+				StartOffset:    group.StartOffset,
+				ReadersCount:   len(group.Readers),
+				CalendarsCount: 0,
+				CreatedAt:      group.CreatedAt,
+			}},
+			CurrentYear: time.Now().Year(),
+		}
 
-		if err := s.templates.ExecuteTemplate(w, "group-list-item.gohtml", groups); err != nil {
+		if err := s.templates.ExecuteTemplate(w, "group-list-item.gohtml", data); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 		}
 		return
@@ -234,27 +244,67 @@ func (s *Server) generateCalendarForGroup(w http.ResponseWriter, r *http.Request
 	}
 
 	if errParse := r.ParseForm(); errParse != nil {
-		http.Error(w, errParse.Error(), http.StatusBadRequest)
+		http.Error(w, "failed to parse form data", http.StatusBadRequest)
+		return
+	}
+	year := atoi(r.FormValue("year"))
+	currentYear := time.Now().Year()
+
+	if year != 0 && (year < currentYear || year > 2045) {
+		http.Error(w, fmt.Sprintf("year must be between %d and 2045", currentYear), http.StatusBadRequest)
+		return
+	}
+
+	group, err := s.App.Queries.GetReaderGroup.Handle(r.Context(), query.GetReaderGroup{ID: groupID})
+	if err != nil {
+		http.Error(w, "group not found", http.StatusNotFound)
 		return
 	}
 
 	cmd := command.GenerateCalendarForGroup{
 		GroupID: groupID,
-		Year:    atoi(r.FormValue("year")),
+		Year:    year,
 	}
+
+	slog.Info(fmt.Sprintf("starting calendar generation for group %s, year %d", groupID, year))
+	startTime := time.Now()
 
 	buffer, errGC := s.App.Commands.GenerateCalendarForGroup.Handle(r.Context(), cmd)
+
+	duration := time.Since(startTime)
+	slog.Info(fmt.Sprintf("calendar generation completed in %v", duration))
+
 	if errGC != nil {
-		http.Error(w, errGC.Error(), http.StatusBadRequest)
+		slog.Error(fmt.Sprintf("failed to generate calendar: %v", errGC))
+		http.Error(w, "failed to generate calendar", http.StatusInternalServerError)
 		return
 	}
+	if year == 0 {
+		year = currentYear
+	}
 
+	filename := fmt.Sprintf("calendar_%s_%d.xlsx", sanitizeFilename(group.Name), year)
 	w.Header().Set("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
-	w.Header().Set("Content-Disposition", "attachment; filename=\"calendar.xlsx\"")
+	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=\"%q\"", filename))
 	w.WriteHeader(http.StatusOK)
 	if _, err := w.Write(buffer.Bytes()); err != nil {
 		slog.Error(fmt.Sprintf("failed to write response: %v", err))
 	}
+}
+
+func sanitizeFilename(name string) string {
+	result := ""
+	for _, r := range name {
+		if (r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z') || (r >= '0' && r <= '9') || r == '_' || r == '-' {
+			result += string(r)
+		} else if r == ' ' {
+			result += "_"
+		}
+	}
+	if result == "" {
+		return "calendar"
+	}
+	return result
 }
 
 func (s *Server) calendar(w http.ResponseWriter, r *http.Request) {
@@ -287,7 +337,7 @@ func (s *Server) createCalendar(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	file, err := service.CreateXlSCalendar(date, entry.StartKathisma, entry.Year)
+	file, err := excel.CreateXlSCalendar(date, entry.StartKathisma, entry.Year)
 	if err != nil {
 		render.Status(r, http.StatusBadRequest)
 		render.JSON(w, r, rest.JSON{"error": err.Error()})

@@ -1,4 +1,4 @@
-package service
+package services
 
 import (
 	"time"
@@ -46,7 +46,6 @@ func GetEasterDate(year int) time.Time {
 	month := (d + e + 114) / 31
 	day := ((d + e + 114) % 31) + 1
 
-	// Перевод даты из Юлианского в Григорианский календарь
 	easter := time.Date(year, time.Month(month), day, 0, 0, 0, 0, time.UTC)
 	offset := year/100 - year/400 - 2
 	easter = easter.AddDate(0, 0, offset)

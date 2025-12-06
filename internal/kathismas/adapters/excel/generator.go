@@ -1,4 +1,4 @@
-package service
+package excel
 
 import (
 	"bytes"
@@ -8,11 +8,11 @@ import (
 	"time"
 
 	"github.com/DjaPy/fot-twenty-readers-go/internal/kathismas/domain"
-	"github.com/DjaPy/fot-twenty-readers-go/internal/kathismas/service"
+	"github.com/DjaPy/fot-twenty-readers-go/internal/kathismas/domain/services"
 	"github.com/xuri/excelize/v2"
 )
 
-const FONTTREBUCHET = "Trebuchet MS"
+const FontTrebuchet = "Trebuchet MS"
 
 func addKathismaNumbersToXLS(xls *excelize.File, number int, sheetName string) error {
 	style, err := xls.NewStyle(&excelize.Style{
@@ -23,7 +23,7 @@ func addKathismaNumbersToXLS(xls *excelize.File, number int, sheetName string) e
 			{Type: "right", Color: "000000", Style: 3},
 		},
 		Alignment: &excelize.Alignment{Horizontal: "center", Vertical: "center", WrapText: true},
-		Font:      &excelize.Font{Family: FONTTREBUCHET, Bold: true, Size: 16},
+		Font:      &excelize.Font{Family: FontTrebuchet, Bold: true, Size: 16},
 	})
 	if err != nil {
 		return fmt.Errorf("failed create new style for xls %v", err)
@@ -37,8 +37,10 @@ func addKathismaNumbersToXLS(xls *excelize.File, number int, sheetName string) e
 	if err2 != nil {
 		errs = append(errs, err2)
 	}
-	return fmt.Errorf("failed work with cell %v", errors.Join(errs...))
-
+	if len(errs) > 0 {
+		return fmt.Errorf("failed work with cell %v", errors.Join(errs...))
+	}
+	return nil
 }
 
 func addHeaderOfMonthToWs(xls *excelize.File, sheetName string) error {
@@ -79,7 +81,7 @@ func addHeaderOfMonthToWs(xls *excelize.File, sheetName string) error {
 func addColumnWithNumberDayToWs(xls *excelize.File, sheetName string) error {
 	style, _ := xls.NewStyle(&excelize.Style{
 		Alignment: &excelize.Alignment{Horizontal: "center", Vertical: "center", WrapText: true},
-		Font:      &excelize.Font{Family: FONTTREBUCHET, Size: 12},
+		Font:      &excelize.Font{Family: FontTrebuchet, Size: 12},
 	})
 	var errs []error
 	for number := 1; number <= 31; number++ {
@@ -123,7 +125,7 @@ func CreateCalendarForReaderToXLS(
 ) error {
 	style, _ := xls.NewStyle(&excelize.Style{
 		Alignment: &excelize.Alignment{Horizontal: "center", Vertical: "center", WrapText: true},
-		Font:      &excelize.Font{Family: FONTTREBUCHET, Size: 14, Color: "000000"},
+		Font:      &excelize.Font{Family: FontTrebuchet, Size: 14, Color: "000000"},
 	})
 	cellStep := 1
 	frameMonth := map[int]string{
@@ -182,8 +184,8 @@ func CreateXlSCalendar(startDate time.Time, startKathisma, year int) (*bytes.Buf
 	if year == 0 {
 		year = startDate.Year()
 	}
-	calendarTable := service.GetCalendarYear(startDate, year)
-	calendarKathismas := service.CreateCalendar(startDate, startKathisma, year)
+	calendarTable := services.GetCalendarYear(startDate, year)
+	calendarKathismas := services.CreateCalendar(startDate, startKathisma, year)
 
 	xls := excelize.NewFile()
 	defer func() {
@@ -242,8 +244,8 @@ func (g *CalendarGeneratorImpl) GenerateForGroup(group *domain.ReaderGroup, year
 	}
 
 	startDate := time.Date(year, time.January, 1, 0, 0, 0, 0, time.UTC)
-	calendarTable := service.GetCalendarYear(startDate, year)
-	calendarKathismas := service.CreateCalendarForGroup(group.StartOffset, year)
+	calendarTable := services.GetCalendarYear(startDate, year)
+	calendarKathismas := services.CreateCalendarForGroup(group.StartOffset, year)
 
 	xls := excelize.NewFile()
 	defer func() {

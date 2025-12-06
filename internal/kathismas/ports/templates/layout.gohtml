@@ -10,6 +10,9 @@
         [x-cloak] { display: none !important; }
         .htmx-swapping { opacity: 0; transition: opacity 200ms ease-out; }
         .htmx-settling { opacity: 1; }
+        .htmx-indicator { display: none; }
+        .htmx-request .htmx-indicator { display: inline-block; }
+        .htmx-request.htmx-indicator { display: inline-block; }
     </style>
 </head>
 <body class="bg-gray-50 min-h-screen">
@@ -57,10 +60,59 @@
 
         // HTMX event listeners
         document.body.addEventListener('htmx:afterRequest', function(evt) {
+            if (evt.detail.requestConfig.verb === 'get') {
+                return;
+            }
+
             if (evt.detail.successful) {
-                showToast('Операция выполнена успешно!');
+                const isFileDownload = evt.detail.xhr.getResponseHeader('Content-Type')?.includes('spreadsheet');
+                if (!isFileDownload) {
+                    showToast('Operation successful!', 'success');
+                }
+            } else if (evt.detail.failed && evt.detail.xhr) {
+                const status = evt.detail.xhr.status;
+                const responseText = evt.detail.xhr.responseText || evt.detail.xhr.statusText;
+
+                let errorMessage = 'An error occurred';
+
+                if (status === 400) {
+                    errorMessage = `Bad request: ${responseText}`;
+                } else if (status === 404) {
+                    errorMessage = 'Resource not found';
+                } else if (status === 500) {
+                    errorMessage = 'Server error. Please try again later';
+                } else if (status === 0) {
+                    errorMessage = 'Network error. Check your connection';
+                } else {
+                    errorMessage = `Error ${status}: ${responseText}`;
+                }
+
+                showToast(errorMessage, 'error');
             }
         });
+        
+        document.body.addEventListener('htmx:sendError', function(evt) {
+            showToast('Network error. Check your connection', 'error');
+        });
+        
+        document.body.addEventListener('htmx:timeout', function(evt) {
+            showToast('Request timeout', 'error');
+        });
+        
+        function showDownloadSpinner(form, event) {
+            const spinner = form.querySelector('[data-spinner]');
+            const button = form.querySelector('button[type="submit"]');
+
+            if (spinner && button) {
+                spinner.classList.remove('hidden');
+                button.disabled = true;
+                
+                setTimeout(() => {
+                    spinner.classList.add('hidden');
+                    button.disabled = false;
+                }, 3000);
+            }
+        }
     </script>
 </body>
 </html>
