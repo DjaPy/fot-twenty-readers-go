@@ -17,7 +17,7 @@ type GenerateCalendarForGroup struct {
 }
 
 type CalendarGenerator interface {
-	GenerateForGroup(group *domain.ReaderGroup, year int) (*bytes.Buffer, error)
+	GenerateForGroup(group *domain.ReaderGroup, year int) (*bytes.Buffer, domain.CalendarMap, error)
 }
 
 type GenerateCalendarForGroupHandler struct {
@@ -49,19 +49,15 @@ func (h GenerateCalendarForGroupHandler) Handle(ctx context.Context, cmd Generat
 		year = time.Now().Year()
 	}
 
-	buffer, err := h.generator.GenerateForGroup(group, year)
+	buffer, calendarData, err := h.generator.GenerateForGroup(group, year)
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate calendar: %w", err)
 	}
 
-	calendar := domain.CalendarOfReader{
-		ID:        uuid.Must(uuid.NewV7()),
-		Calendar:  make(domain.CalendarMap),
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
-	}
+	// Create calendar entity with real data
+	calendar := domain.NewCalendarOfReader(year, calendarData)
 
-	if err := group.AddCalendar(calendar); err != nil {
+	if err := group.AddCalendar(*calendar); err != nil {
 		return nil, fmt.Errorf("failed to add calendar to group: %w", err)
 	}
 

@@ -23,6 +23,7 @@ type PsalmReaderDB struct {
 
 type CalendarRefDB struct {
 	ID        string             `json:"id"`
+	Year      int                `json:"year"`
 	Calendar  domain.CalendarMap `json:"calendar"`
 	CreatedAt string             `json:"created_at"`
 	UpdatedAt string             `json:"updated_at"`
@@ -201,6 +202,7 @@ func (r *ReaderGroupRepository) unmarshalFromDB(dbGroup *ReaderGroupDB) (*domain
 
 		calendars = append(calendars, *domain.UnmarshallCalendarOfReader(
 			calendarID,
+			dbCalendar.Year,
 			dbCalendar.Calendar,
 			createdAt,
 			updatedAt,

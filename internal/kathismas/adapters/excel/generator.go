@@ -9,6 +9,7 @@ import (
 
 	"github.com/DjaPy/fot-twenty-readers-go/internal/kathismas/domain"
 	"github.com/DjaPy/fot-twenty-readers-go/internal/kathismas/domain/services"
+	orderedmap "github.com/wk8/go-ordered-map/v2"
 	"github.com/xuri/excelize/v2"
 )
 
@@ -238,7 +239,7 @@ func NewCalendarGenerator() *CalendarGeneratorImpl {
 	return &CalendarGeneratorImpl{}
 }
 
-func (g *CalendarGeneratorImpl) GenerateForGroup(group *domain.ReaderGroup, year int) (*bytes.Buffer, error) {
+func (g *CalendarGeneratorImpl) GenerateForGroup(group *domain.ReaderGroup, year int) (*bytes.Buffer, domain.CalendarMap, error) {
 	if year == 0 {
 		year = time.Now().Year()
 	}
@@ -246,6 +247,8 @@ func (g *CalendarGeneratorImpl) GenerateForGroup(group *domain.ReaderGroup, year
 	startDate := time.Date(year, time.January, 1, 0, 0, 0, 0, time.UTC)
 	calendarTable := services.GetCalendarYear(startDate, year)
 	calendarKathismas := services.CreateCalendarForGroup(group.StartOffset, year)
+
+	calendarData := convertToCalendarMap(calendarKathismas)
 
 	xls := excelize.NewFile()
 	defer func() {
@@ -258,36 +261,44 @@ func (g *CalendarGeneratorImpl) GenerateForGroup(group *domain.ReaderGroup, year
 		sheetName := fmt.Sprintf("Чтец %d", pair.Key)
 
 		if _, err := xls.NewSheet(sheetName); err != nil {
-			return nil, fmt.Errorf("failed create sheet %v", err)
+			return nil, nil, fmt.Errorf("failed create sheet %v", err)
 		}
 		err1 := addKathismaNumbersToXLS(xls, pair.Key, sheetName)
 		if err1 != nil {
-			return nil, fmt.Errorf("failed add kafismas number %v", err1)
+			return nil, nil, fmt.Errorf("failed add kafismas number %v", err1)
 		}
 		err2 := addHeaderOfMonthToWs(xls, sheetName)
 		if err2 != nil {
-			return nil, fmt.Errorf("failed create header of months %v", err2)
+			return nil, nil, fmt.Errorf("failed create header of months %v", err2)
 		}
 		err3 := addColumnWithNumberDayToWs(xls, sheetName)
 		if err3 != nil {
-			return nil, fmt.Errorf("failed add column with number day %v", err3)
+			return nil, nil, fmt.Errorf("failed add column with number day %v", err3)
 		}
 		err4 := CreateCalendarForReaderToXLS(xls, calendarTable, pair.Value, year, sheetName)
 		if err4 != nil {
-			return nil, fmt.Errorf("failed create calendar %v", err4)
+			return nil, nil, fmt.Errorf("failed create calendar %v", err4)
 		}
 	}
 
 	p := getPathForFile()
 	err := xls.SaveAs(p.outFile)
 	if err != nil {
-		return nil, fmt.Errorf("failed save %v", err)
+		return nil, nil, fmt.Errorf("failed save %v", err)
 	}
 
 	result, err := xls.WriteToBuffer()
 	if err != nil {
-		return nil, fmt.Errorf("failed write to buffer %v", err)
+		return nil, nil, fmt.Errorf("failed write to buffer %v", err)
 	}
 
-	return result, nil
+	return result, calendarData, nil
+}
+
+func convertToCalendarMap(orderedMap *orderedmap.OrderedMap[int, map[int]int]) domain.CalendarMap {
+	calendarMap := make(domain.CalendarMap)
+	for pair := orderedMap.Oldest(); pair != nil; pair = pair.Next() {
+		calendarMap[pair.Key] = pair.Value
+	}
+	return calendarMap
 }
