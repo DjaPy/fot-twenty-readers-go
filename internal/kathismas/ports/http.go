@@ -86,6 +86,7 @@ func (s *Server) router() *chi.Mux {
 	router.Get("/groups/{id}", s.getGroupPage)
 	router.Post("/groups/{id}/readers", s.addReaderToGroup)
 	router.Post("/groups/{id}/generate", s.generateCalendarForGroup)
+	router.Get("/groups/{id}/current-kathisma", s.getCurrentKathisma)
 
 	return router
 }
@@ -351,6 +352,44 @@ func (s *Server) createCalendar(w http.ResponseWriter, r *http.Request) {
 		render.Status(r, http.StatusInternalServerError)
 		render.JSON(w, r, rest.JSON{"error": err.Error()})
 	}
+}
+
+func (s *Server) getCurrentKathisma(w http.ResponseWriter, r *http.Request) {
+	idStr := chi.URLParam(r, "id")
+	groupID, err := uuid.FromString(idStr)
+	if err != nil {
+		http.Error(w, "invalid group id", http.StatusBadRequest)
+		return
+	}
+
+	readerNumberStr := r.URL.Query().Get("reader_number")
+	if readerNumberStr == "" {
+		http.Error(w, "reader_number query parameter is required", http.StatusBadRequest)
+		return
+	}
+
+	readerNumber := atoi(readerNumberStr)
+	if readerNumber < 1 || readerNumber > 20 {
+		http.Error(w, "reader number must be between 1 and 20", http.StatusBadRequest)
+		return
+	}
+
+	result, err := s.App.Queries.GetCurrentKathisma.Handle(r.Context(), query.GetCurrentKathisma{
+		GroupID:      groupID,
+		ReaderNumber: readerNumber,
+	})
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	if r.Header.Get("HX-Request") == "true" {
+		if err := s.templates.ExecuteTemplate(w, "current-kathisma.gohtml", result); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		}
+		return
+	}
+	render.JSON(w, r, result)
 }
 
 func (s *Server) renderErrorPage(w http.ResponseWriter, r *http.Request, err error, errCode int) { // nolint

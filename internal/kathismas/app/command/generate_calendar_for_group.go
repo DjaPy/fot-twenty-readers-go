@@ -54,7 +54,6 @@ func (h GenerateCalendarForGroupHandler) Handle(ctx context.Context, cmd Generat
 		return nil, fmt.Errorf("failed to generate calendar: %w", err)
 	}
 
-	// Create calendar entity with real data
 	calendar := domain.NewCalendarOfReader(year, calendarData)
 
 	if err := group.AddCalendar(*calendar); err != nil {

@@ -12,15 +12,6 @@ import (
 	"github.com/gofrs/uuid/v5"
 )
 
-type PsalmReaderDB struct {
-	ID         string `json:"id"`
-	Username   string `json:"username"`
-	TelegramID int64  `json:"telegram_id"`
-	Phone      string `json:"phone"`
-	CreatedAt  string `json:"created_at"`
-	UpdatedAt  string `json:"updated_at"`
-}
-
 type CalendarRefDB struct {
 	ID        string             `json:"id"`
 	Year      int                `json:"year"`
@@ -30,13 +21,13 @@ type CalendarRefDB struct {
 }
 
 type ReaderGroupDB struct {
-	ID          string          `storm:"id" json:"id"`
-	Name        string          `storm:"index" json:"name"`
-	Readers     []PsalmReaderDB `json:"readers"`
-	StartOffset int             `json:"start_offset"`
-	Calendars   []CalendarRefDB `json:"calendars"`
-	CreatedAt   time.Time       `storm:"index" json:"created_at"`
-	UpdatedAt   time.Time       `json:"updated_at"`
+	ID          string            `storm:"id" json:"id"`
+	Name        string            `storm:"index" json:"name"`
+	Readers     []PsalmReaderTGDB `json:"readers"`
+	StartOffset int               `json:"start_offset"`
+	Calendars   []CalendarRefDB   `json:"calendars"`
+	CreatedAt   time.Time         `storm:"index" json:"created_at"`
+	UpdatedAt   time.Time         `json:"updated_at"`
 }
 
 type ReaderGroupRepository struct {
@@ -75,23 +66,23 @@ func (r *ReaderGroupRepository) GetByID(ctx context.Context, id uuid.UUID) (*dom
 	return r.unmarshalFromDB(&dbGroup)
 }
 
-func (r *ReaderGroupRepository) GetAll(ctx context.Context) ([]*domain.ReaderGroup, error) {
+func (r *ReaderGroupRepository) GetAll(ctx context.Context) ([]domain.ReaderGroup, error) {
 	var dbGroups []ReaderGroupDB
 	err := r.db.All(&dbGroups)
 	if err != nil {
 		if errors.Is(err, storm.ErrNotFound) {
-			return []*domain.ReaderGroup{}, nil
+			return []domain.ReaderGroup{}, nil
 		}
 		return nil, fmt.Errorf("error getting all reader groups: %w", err)
 	}
 
-	groups := make([]*domain.ReaderGroup, 0, len(dbGroups))
+	groups := make([]domain.ReaderGroup, 0, len(dbGroups))
 	for i := range dbGroups {
-		group, err := r.unmarshalFromDB(&dbGroups[i])
-		if err != nil {
-			return nil, fmt.Errorf("error unmarshalling reader group: %w", err)
+		group, errUnm := r.unmarshalFromDB(&dbGroups[i])
+		if errUnm != nil {
+			return nil, fmt.Errorf("error unmarshalling reader group: %w", errUnm)
 		}
-		groups = append(groups, group)
+		groups = append(groups, *group)
 	}
 
 	return groups, nil
@@ -117,15 +108,15 @@ func (r *ReaderGroupRepository) Delete(ctx context.Context, id uuid.UUID) error 
 }
 
 func (r *ReaderGroupRepository) marshalToDB(group *domain.ReaderGroup) ReaderGroupDB {
-	readers := make([]PsalmReaderDB, 0, len(group.Readers))
+	readers := make([]PsalmReaderTGDB, 0, len(group.Readers))
 	for _, reader := range group.Readers {
-		readers = append(readers, PsalmReaderDB{
-			ID:         reader.ID.String(),
+		readers = append(readers, PsalmReaderTGDB{
+			ID:         reader.ID,
 			Username:   reader.Username,
 			TelegramID: reader.TelegramID,
 			Phone:      reader.Phone,
-			CreatedAt:  reader.CreatedAt.Format(time.RFC3339),
-			UpdatedAt:  reader.UpdatedAt.Format(time.RFC3339),
+			CreatedAt:  reader.CreatedAt,
+			UpdatedAt:  reader.UpdatedAt,
 		})
 	}
 
@@ -133,6 +124,7 @@ func (r *ReaderGroupRepository) marshalToDB(group *domain.ReaderGroup) ReaderGro
 	for _, calendar := range group.Calendars {
 		calendars = append(calendars, CalendarRefDB{
 			ID:        calendar.ID.String(),
+			Year:      calendar.Year,
 			Calendar:  calendar.Calendar,
 			CreatedAt: calendar.CreatedAt.Format(time.RFC3339),
 			UpdatedAt: calendar.UpdatedAt.Format(time.RFC3339),
@@ -158,28 +150,14 @@ func (r *ReaderGroupRepository) unmarshalFromDB(dbGroup *ReaderGroupDB) (*domain
 
 	readers := make([]domain.PsalmReader, 0, len(dbGroup.Readers))
 	for _, dbReader := range dbGroup.Readers {
-		readerID, err := uuid.FromString(dbReader.ID)
-		if err != nil {
-			return nil, fmt.Errorf("invalid reader ID: %w", err)
-		}
-
-		createdAt, err := time.Parse(time.RFC3339, dbReader.CreatedAt)
-		if err != nil {
-			createdAt = time.Now()
-		}
-
-		updatedAt, err := time.Parse(time.RFC3339, dbReader.UpdatedAt)
-		if err != nil {
-			updatedAt = time.Now()
-		}
 
 		readers = append(readers, *domain.UnmarshallPsalmReader(
-			readerID,
+			dbReader.ID,
 			dbReader.Username,
 			dbReader.TelegramID,
 			dbReader.Phone,
-			createdAt,
-			updatedAt,
+			dbReader.CreatedAt,
+			dbReader.UpdatedAt,
 		))
 	}
 

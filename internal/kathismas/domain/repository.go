@@ -28,7 +28,7 @@ type RepositoryCalendarOfReaders interface {
 type RepositoryReaderGroup interface {
 	Create(ctx context.Context, group *ReaderGroup) error
 	GetByID(ctx context.Context, id uuid.UUID) (*ReaderGroup, error)
-	GetAll(ctx context.Context) ([]*ReaderGroup, error)
+	GetAll(ctx context.Context) ([]ReaderGroup, error)
 	Update(ctx context.Context, group *ReaderGroup) error
 	Delete(ctx context.Context, id uuid.UUID) error
 }

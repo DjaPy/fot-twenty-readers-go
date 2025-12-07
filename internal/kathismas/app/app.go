@@ -33,6 +33,7 @@ type Commands struct {
 }
 
 type Queries struct {
-	ListReaderGroups query.ListReaderGroupsHandler
-	GetReaderGroup   query.GetReaderGroupHandler
+	ListReaderGroups   query.ListReaderGroupsHandler
+	GetReaderGroup     query.GetReaderGroupHandler
+	GetCurrentKathisma query.GetCurrentKathismaHandler
 }
