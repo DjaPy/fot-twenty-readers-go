@@ -33,7 +33,8 @@ type Commands struct {
 }
 
 type Queries struct {
-	ListReaderGroups   query.ListReaderGroupsHandler
-	GetReaderGroup     query.GetReaderGroupHandler
-	GetCurrentKathisma query.GetCurrentKathismaHandler
+	ListReaderGroups      query.ListReaderGroupsHandler
+	GetReaderGroup        query.GetReaderGroupHandler
+	GetCurrentKathisma    query.GetCurrentKathismaHandler
+	GetReaderByTelegramID query.GetReaderByTelegramIDHandler
 }

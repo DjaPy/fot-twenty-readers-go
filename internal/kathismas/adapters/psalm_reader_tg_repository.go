@@ -13,12 +13,13 @@ import (
 )
 
 type PsalmReaderTGDB struct {
-	ID         uuid.UUID `storm:"id"`
-	Username   string    `storm:"index"`
-	TelegramID int64     `storm:"index, unique"`
-	Phone      string
-	CreatedAt  time.Time `storm:"index"`
-	UpdatedAt  time.Time
+	ID           uuid.UUID `storm:"id"`
+	ReaderNumber int8
+	Username     string `storm:"index"`
+	TelegramID   int64  `storm:"index, unique"`
+	Phone        string
+	CreatedAt    time.Time `storm:"index"`
+	UpdatedAt    time.Time
 }
 
 type PsalmReaderTGRepository struct {
@@ -41,6 +42,7 @@ func (pr PsalmReaderTGRepository) GetPsalmReaderTG(ctx context.Context, id uuid.
 
 	psalmReaderTG := domain.UnmarshallPsalmReader(
 		dbPsalmReaderTG.ID,
+		dbPsalmReaderTG.ReaderNumber,
 		dbPsalmReaderTG.Username,
 		dbPsalmReaderTG.TelegramID,
 		dbPsalmReaderTG.Phone,

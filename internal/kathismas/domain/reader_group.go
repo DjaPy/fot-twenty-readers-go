@@ -60,7 +60,11 @@ func UnmarshallReaderGroup(
 	}
 }
 
-func (rg *ReaderGroup) AddReader(reader PsalmReader) error {
+func (rg *ReaderGroup) AddReader(reader *PsalmReader) error {
+	if reader.ReaderNumber < 1 || reader.ReaderNumber > 20 {
+		return fmt.Errorf("reader number must be between 1 and 20, got %d", reader.ReaderNumber)
+	}
+
 	if len(rg.Readers) >= 20 {
 		return fmt.Errorf("group already has maximum number of readers (20)")
 	}
@@ -72,9 +76,12 @@ func (rg *ReaderGroup) AddReader(reader PsalmReader) error {
 		if r.TelegramID == reader.TelegramID && reader.TelegramID != 0 {
 			return fmt.Errorf("reader with telegram ID %d already exists in group", reader.TelegramID)
 		}
+		if r.ReaderNumber == reader.ReaderNumber {
+			return fmt.Errorf("reader number %d is already taken in this group", reader.ReaderNumber)
+		}
 	}
 
-	rg.Readers = append(rg.Readers, reader)
+	rg.Readers = append(rg.Readers, *reader)
 	rg.UpdatedAt = time.Now()
 	return nil
 }
@@ -161,6 +168,33 @@ func (rg *ReaderGroup) ReadersCount() int {
 
 func (rg *ReaderGroup) CalendarsCount() int {
 	return len(rg.Calendars)
+}
+
+func (rg *ReaderGroup) GetAvailableReaderNumbers() []int8 {
+	usedNumbers := make(map[int8]bool)
+	for _, r := range rg.Readers {
+		usedNumbers[r.ReaderNumber] = true
+	}
+
+	available := make([]int8, 0, 20-len(rg.Readers))
+	for i := int8(1); i <= 20; i++ {
+		if !usedNumbers[i] {
+			available = append(available, i)
+		}
+	}
+	return available
+}
+
+func (rg *ReaderGroup) IsReaderNumberAvailable(number int8) bool {
+	if number < 1 || number > 20 {
+		return false
+	}
+	for _, r := range rg.Readers {
+		if r.ReaderNumber == number {
+			return false
+		}
+	}
+	return true
 }
 
 func validateReaderGroupParams(name string, startOffset int) error {

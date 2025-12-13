@@ -44,9 +44,10 @@ func NewApplication(ctx context.Context) *app.Application {
 			GenerateCalendarForGroup: command.NewGenerateCalendarForGroupHandler(readerGroupRepository, calendarGenerator),
 		},
 		app.Queries{
-			ListReaderGroups:   query.NewListReaderGroupsHandler(readerGroupRepository),
-			GetReaderGroup:     query.NewGetReaderGroupHandler(readerGroupRepository),
-			GetCurrentKathisma: query.NewGetCurrentKathismaHandler(readerGroupRepository),
+			ListReaderGroups:      query.NewListReaderGroupsHandler(readerGroupRepository),
+			GetReaderGroup:        query.NewGetReaderGroupHandler(readerGroupRepository),
+			GetCurrentKathisma:    query.NewGetCurrentKathismaHandler(readerGroupRepository),
+			GetReaderByTelegramID: query.NewGetReaderByTelegramIDHandler(readerGroupRepository),
 		},
 		cleanup,
 	)

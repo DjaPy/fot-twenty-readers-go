@@ -9,10 +9,11 @@ import (
 )
 
 type AddReaderToGroup struct {
-	GroupID    uuid.UUID
-	Username   string
-	TelegramID int64
-	Phone      string
+	GroupID      uuid.UUID
+	ReaderNumber int8
+	Username     string
+	TelegramID   int64
+	Phone        string
 }
 
 type AddReaderToGroupHandler struct {
@@ -32,12 +33,12 @@ func (h AddReaderToGroupHandler) Handle(ctx context.Context, cmd AddReaderToGrou
 		return fmt.Errorf("failed to get reader group: %w", err)
 	}
 
-	reader, err := domain.NewPsalmReader(cmd.Username, cmd.TelegramID, cmd.Phone)
+	reader, err := domain.NewPsalmReader(cmd.Username, cmd.TelegramID, cmd.Phone, cmd.ReaderNumber)
 	if err != nil {
 		return fmt.Errorf("failed to create psalm reader: %w", err)
 	}
 
-	if err := group.AddReader(*reader); err != nil {
+	if err := group.AddReader(reader); err != nil {
 		return fmt.Errorf("failed to add reader to group: %w", err)
 	}
 

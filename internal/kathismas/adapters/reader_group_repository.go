@@ -153,6 +153,7 @@ func (r *ReaderGroupRepository) unmarshalFromDB(dbGroup *ReaderGroupDB) (*domain
 
 		readers = append(readers, *domain.UnmarshallPsalmReader(
 			dbReader.ID,
+			dbReader.ReaderNumber,
 			dbReader.Username,
 			dbReader.TelegramID,
 			dbReader.Phone,

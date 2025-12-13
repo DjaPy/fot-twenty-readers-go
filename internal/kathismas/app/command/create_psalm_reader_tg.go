@@ -11,9 +11,10 @@ import (
 )
 
 type CreatePsalmReaderTG struct {
-	Username   string
-	TelegramID int64
-	Phone      string
+	Username     string
+	ReaderNumber int8
+	TelegramID   int64
+	Phone        string
 }
 
 type CreateCalendarOfReaderHandler decorator.CommandHandler[CreatePsalmReaderTG]
@@ -36,7 +37,7 @@ func NewCreatePsalmReaderTGHandler(
 
 func (cpr createPsalmReaderTGHandler) Handle(ctx context.Context, cmd CreatePsalmReaderTG) error {
 
-	prTG, err := domain.NewPsalmReader(cmd.Username, cmd.TelegramID, cmd.Phone)
+	prTG, err := domain.NewPsalmReader(cmd.Username, cmd.TelegramID, cmd.Phone, cmd.ReaderNumber)
 	if err != nil {
 		return err //nolint:wrapcheck // err repeat
 	}

@@ -8,15 +8,16 @@ import (
 )
 
 type PsalmReader struct {
-	ID         uuid.UUID
-	Username   string
-	TelegramID int64
-	Phone      string
-	CreatedAt  time.Time
-	UpdatedAt  time.Time
+	ID           uuid.UUID
+	ReaderNumber int8
+	Username     string
+	TelegramID   int64
+	Phone        string
+	CreatedAt    time.Time
+	UpdatedAt    time.Time
 }
 
-func NewPsalmReader(username string, telegramID int64, phone string) (*PsalmReader, error) {
+func NewPsalmReader(username string, telegramID int64, phone string, readerNumber int8) (*PsalmReader, error) {
 	ID, err := uuid.NewV7()
 	if err != nil {
 		return nil, fmt.Errorf("failed generate uuid7 %v", err)
@@ -24,17 +25,19 @@ func NewPsalmReader(username string, telegramID int64, phone string) (*PsalmRead
 	createdAt := time.Now()
 	updatedAt := time.Now()
 	return &PsalmReader{
-		ID:         ID,
-		Username:   username,
-		TelegramID: telegramID,
-		Phone:      phone,
-		CreatedAt:  createdAt,
-		UpdatedAt:  updatedAt,
+		ID:           ID,
+		ReaderNumber: readerNumber,
+		Username:     username,
+		TelegramID:   telegramID,
+		Phone:        phone,
+		CreatedAt:    createdAt,
+		UpdatedAt:    updatedAt,
 	}, nil
 }
 
 func UnmarshallPsalmReader(
 	id uuid.UUID,
+	readerNumber int8,
 	username string,
 	telegramID int64,
 	phone string,
@@ -42,11 +45,12 @@ func UnmarshallPsalmReader(
 	updatedAt time.Time,
 ) *PsalmReader {
 	return &PsalmReader{
-		ID:         id,
-		Username:   username,
-		TelegramID: telegramID,
-		Phone:      phone,
-		CreatedAt:  createdAt,
-		UpdatedAt:  updatedAt,
+		ID:           id,
+		ReaderNumber: readerNumber,
+		Username:     username,
+		TelegramID:   telegramID,
+		Phone:        phone,
+		CreatedAt:    createdAt,
+		UpdatedAt:    updatedAt,
 	}
 }
