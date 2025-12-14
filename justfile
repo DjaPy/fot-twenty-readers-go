@@ -38,6 +38,11 @@ test-coverage:
     go tool cover -func=coverage.out
     @echo "=== Test success ==="
 
+generate-mocks:
+    @echo "=== Generate mocks ==="
+    moq -out internal/kathismas/domain/mocks/repository_reader_group_mock.go -pkg mocks internal/kathismas/domain RepositoryReaderGroup
+    @echo "=== Mocks generated ==="
+
 all-check:
     set -e
     just check-dependensies

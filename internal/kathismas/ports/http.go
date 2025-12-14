@@ -238,7 +238,7 @@ func (s *Server) addReaderToGroup(w http.ResponseWriter, r *http.Request) {
 
 	cmd := command.AddReaderToGroup{
 		GroupID:      groupID,
-		ReaderNumber: int8(readerNumber),
+		ReaderNumber: int8(readerNumber), //nolint:gosec // check up
 		Username:     username,
 		TelegramID:   int64(atoi(r.FormValue("telegram_id"))),
 		Phone:        r.FormValue("phone"),
