@@ -21,6 +21,7 @@ type Handlers struct {
 	sessionManager               *SessionManager
 	addReaderHandler             *command.AddReaderToGroupHandler
 	listGroupsHandler            *query.ListReaderGroupsHandler
+	getReaderGroupHandler        *query.GetReaderGroupHandler
 	getCurrentKathismaHandler    *query.GetCurrentKathismaHandler
 	getReaderByTelegramIDHandler query.GetReaderByTelegramIDHandler
 	log                          *slog.Logger
@@ -30,6 +31,7 @@ func NewHandlers(
 	sessionManager *SessionManager,
 	addReaderHandler *command.AddReaderToGroupHandler,
 	listGroupsHandler *query.ListReaderGroupsHandler,
+	getReaderGroupHandler *query.GetReaderGroupHandler,
 	getCurrentKathismaHandler *query.GetCurrentKathismaHandler,
 	getReaderByTelegramIDHandler query.GetReaderByTelegramIDHandler,
 	log *slog.Logger,
@@ -38,6 +40,7 @@ func NewHandlers(
 		sessionManager:               sessionManager,
 		addReaderHandler:             addReaderHandler,
 		listGroupsHandler:            listGroupsHandler,
+		getReaderGroupHandler:        getReaderGroupHandler,
 		getCurrentKathismaHandler:    getCurrentKathismaHandler,
 		getReaderByTelegramIDHandler: getReaderByTelegramIDHandler,
 		log:                          log,
@@ -146,7 +149,9 @@ func (h *Handlers) HandleCallbackQuery(ctx context.Context, bot MessageSender, c
 
 	switch session.State {
 	case StateAwaitingGroup:
-		return h.handleGroupCallback(bot, callback)
+		return h.handleGroupCallback(ctx, bot, callback)
+	case StateAwaitingReaderNumber:
+		return h.handleReaderNumberCallback(bot, callback)
 	case StateAwaitingConfirm:
 		return h.handleConfirmCallback(ctx, bot, callback)
 	default:
@@ -201,7 +206,7 @@ func (h *Handlers) handleNameInput(ctx context.Context, bot MessageSender, messa
 	return fmt.Errorf("failed to send group selection message: %w", err)
 }
 
-func (h *Handlers) handleGroupCallback(bot MessageSender, callback *tgbotapi.CallbackQuery) error {
+func (h *Handlers) handleGroupCallback(ctx context.Context, bot MessageSender, callback *tgbotapi.CallbackQuery) error {
 	parts := strings.Split(callback.Data, ":")
 	if len(parts) != 2 || parts[0] != "group" {
 		answerCallback := tgbotapi.NewCallback(callback.ID, "Неверный формат данных")
@@ -216,9 +221,41 @@ func (h *Handlers) handleGroupCallback(bot MessageSender, callback *tgbotapi.Cal
 		return fmt.Errorf("failed to send callback answer: %w", sendErr)
 	}
 
+	group, err := h.getReaderGroupHandler.Handle(ctx, query.GetReaderGroup{ID: groupID})
+	if err != nil {
+		h.log.Error("failed to get group", "error", err)
+		answerCallback := tgbotapi.NewCallback(callback.ID, "Ошибка при получении группы")
+		_, sendErr := bot.Request(answerCallback)
+		if sendErr != nil {
+			h.log.Error("failed to answer callback", "error", sendErr)
+		}
+
+		errorMsg := fmt.Sprintf("Ошибка при получении группы: %v", err)
+		msg := tgbotapi.NewMessage(callback.Message.Chat.ID, errorMsg)
+		_, sendErr = bot.Send(msg)
+		return fmt.Errorf("failed to send error message: %w", sendErr)
+	}
+
+	availableNumbers := group.GetAvailableReaderNumbers()
+	if len(availableNumbers) == 0 {
+		h.log.Info("group is full, cannot add reader", "group_id", groupID)
+		answerCallback := tgbotapi.NewCallback(callback.ID, "Группа полностью заполнена")
+		_, sendErr := bot.Request(answerCallback)
+		if sendErr != nil {
+			h.log.Error("failed to answer callback", "error", sendErr)
+		}
+
+		errorMsg := "Группа полностью заполнена (20 чтецов). Обратитесь к администратору."
+		msg := tgbotapi.NewMessage(callback.Message.Chat.ID, errorMsg)
+		h.sessionManager.DeleteSession(callback.From.ID)
+		_, sendErr = bot.Send(msg)
+		return fmt.Errorf("failed to send full group message: %w", sendErr)
+	}
+
 	session := h.sessionManager.GetSession(callback.From.ID)
 	session.GroupID = groupID
-	session.State = StateAwaitingConfirm
+	session.GroupName = group.Name
+	session.State = StateAwaitingReaderNumber
 	h.sessionManager.SetSession(callback.From.ID, session)
 
 	answerCallback := tgbotapi.NewCallback(callback.ID, "Группа выбрана")
@@ -227,8 +264,57 @@ func (h *Handlers) handleGroupCallback(bot MessageSender, callback *tgbotapi.Cal
 		h.log.Error("failed to answer callback", "error", err)
 	}
 
-	confirmText := fmt.Sprintf("Подтвердите регистрацию:\n\nИмя: %s\nГруппа: %s\n\nВсё верно?",
-		session.Username, parts[1])
+	keyboard := tgbotapi.NewInlineKeyboardMarkup()
+	row := make([]tgbotapi.InlineKeyboardButton, 0, len(availableNumbers))
+	for i, num := range availableNumbers {
+		btn := tgbotapi.NewInlineKeyboardButtonData(
+			fmt.Sprintf("№%d", num),
+			fmt.Sprintf("reader:%d", num),
+		)
+		row = append(row, btn)
+
+		if (i+1)%4 == 0 || i == len(availableNumbers)-1 {
+			keyboard.InlineKeyboard = append(keyboard.InlineKeyboard, row)
+			row = []tgbotapi.InlineKeyboardButton{}
+		}
+	}
+
+	msg := tgbotapi.NewMessage(callback.Message.Chat.ID,
+		fmt.Sprintf("Группа: %s\n\nВыберите ваш номер чтеца:", group.Name))
+	msg.ReplyMarkup = keyboard
+	_, err = bot.Send(msg)
+	return fmt.Errorf("failed to send reader number selection: %w", err)
+}
+
+func (h *Handlers) handleReaderNumberCallback(bot MessageSender, callback *tgbotapi.CallbackQuery) error {
+	parts := strings.Split(callback.Data, ":")
+	if len(parts) != 2 || parts[0] != "reader" {
+		answerCallback := tgbotapi.NewCallback(callback.ID, "Неверный формат данных")
+		_, err := bot.Request(answerCallback)
+		return fmt.Errorf("failed to send callback answer: %w", err)
+	}
+
+	var readerNumber int8
+	_, err := fmt.Sscanf(parts[1], "%d", &readerNumber)
+	if err != nil || readerNumber < 1 || readerNumber > 20 {
+		answerCallback := tgbotapi.NewCallback(callback.ID, "Неверный номер чтеца")
+		_, sendErr := bot.Request(answerCallback)
+		return fmt.Errorf("failed to send callback answer: %w", sendErr)
+	}
+
+	session := h.sessionManager.GetSession(callback.From.ID)
+	session.ReaderNumber = readerNumber
+	session.State = StateAwaitingConfirm
+	h.sessionManager.SetSession(callback.From.ID, session)
+
+	answerCallback := tgbotapi.NewCallback(callback.ID, "Номер выбран")
+	_, err = bot.Request(answerCallback)
+	if err != nil {
+		h.log.Error("failed to answer callback", "error", err)
+	}
+
+	confirmText := fmt.Sprintf("Подтвердите регистрацию:\n\nИмя: %s\nГруппа: %s\nНомер чтеца: %d\n\nВсё верно?",
+		session.Username, session.GroupName, session.ReaderNumber)
 
 	keyboard := tgbotapi.NewInlineKeyboardMarkup(
 		tgbotapi.NewInlineKeyboardRow(
@@ -279,10 +365,11 @@ func (h *Handlers) handleConfirmCallback(ctx context.Context, bot MessageSender,
 	}
 
 	cmd := command.AddReaderToGroup{
-		GroupID:    session.GroupID,
-		Username:   session.Username,
-		TelegramID: callback.From.ID,
-		Phone:      "",
+		GroupID:      session.GroupID,
+		ReaderNumber: session.ReaderNumber,
+		Username:     session.Username,
+		TelegramID:   callback.From.ID,
+		Phone:        "",
 	}
 
 	err := h.addReaderHandler.Handle(ctx, cmd)
@@ -309,13 +396,20 @@ func (h *Handlers) handleConfirmCallback(ctx context.Context, bot MessageSender,
 		h.log.Error("failed to answer callback", "error", err)
 	}
 
-	successMsg := "✅ Регистрация успешна!\n\nИспользуйте /kathisma для просмотра текущей кафизмы."
+	successMsg := fmt.Sprintf("✅ Регистрация успешна!\n\nВы зарегистрированы как чтец №%d в группе \"%q\".\n\nИспользуйте /kathisma для просмотра текущей кафизмы.",
+		session.ReaderNumber, session.GroupName)
 	msg := tgbotapi.NewMessage(callback.Message.Chat.ID, successMsg)
 	_, sendErr := bot.Send(msg)
 	return fmt.Errorf("failed to send success message: %w", sendErr)
 }
 
-func (h *Handlers) handleGetKathismaForRegistered(ctx context.Context, bot MessageSender, message *tgbotapi.Message, groupID uuid.UUID, readerNumber int) error {
+func (h *Handlers) handleGetKathismaForRegistered(
+	ctx context.Context,
+	bot MessageSender,
+	message *tgbotapi.Message,
+	groupID uuid.UUID,
+	readerNumber int,
+) error {
 	result, err := h.getCurrentKathismaHandler.Handle(ctx, query.GetCurrentKathisma{
 		GroupID:      groupID,
 		ReaderNumber: readerNumber,
@@ -332,8 +426,10 @@ func (h *Handlers) handleGetKathismaForRegistered(ctx context.Context, bot Messa
 	if result.Kathisma == 0 {
 		responseText = fmt.Sprintf("📖 На сегодня (%s) чтение не предусмотрено.\n\n", result.Date)
 	} else {
-		responseText = fmt.Sprintf("📖 Ваша кафизма на сегодня (%s):\n\n Кафизма №%d\n\nЧтец №%d в группе \"%q\"",
-			result.Date, result.Kathisma, result.ReaderNumber, result.GroupName)
+		responseText = fmt.Sprintf(
+			"📖 Ваша кафизма на сегодня (%s):\n\n Кафизма №%d\n\nЧтец №%d в группе \"%q\"",
+			result.Date, result.Kathisma, result.ReaderNumber, result.GroupName,
+		)
 	}
 
 	msg := tgbotapi.NewMessage(message.Chat.ID, responseText)

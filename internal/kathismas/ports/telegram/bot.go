@@ -11,19 +11,20 @@ import (
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
 
-const numWorkers = 10
-
 type Bot struct {
-	api      *tgbotapi.BotAPI
-	handlers *Handlers
-	log      *slog.Logger
-	wg       sync.WaitGroup
+	api        *tgbotapi.BotAPI
+	handlers   *Handlers
+	log        *slog.Logger
+	wg         sync.WaitGroup
+	numWorkers int8
 }
 
 func NewBot(
 	token string,
+	numWorkers int8,
 	addReaderHandler *command.AddReaderToGroupHandler,
 	listGroupsHandler *query.ListReaderGroupsHandler,
+	getReaderGroupHandler *query.GetReaderGroupHandler,
 	getCurrentKathismaHandler *query.GetCurrentKathismaHandler,
 	getReaderByTelegramIDHandler query.GetReaderByTelegramIDHandler,
 	log *slog.Logger,
@@ -38,6 +39,7 @@ func NewBot(
 		sessionManager,
 		addReaderHandler,
 		listGroupsHandler,
+		getReaderGroupHandler,
 		getCurrentKathismaHandler,
 		getReaderByTelegramIDHandler,
 		log,
@@ -46,9 +48,10 @@ func NewBot(
 	log.Info("Authorized on account", "username", bot.Self.UserName)
 
 	return &Bot{
-		api:      bot,
-		handlers: handlers,
-		log:      log,
+		api:        bot,
+		handlers:   handlers,
+		log:        log,
+		numWorkers: numWorkers,
 	}, nil
 }
 
@@ -59,9 +62,9 @@ func (b *Bot) Start(ctx context.Context) error {
 	u.Timeout = 60
 
 	updates := b.api.GetUpdatesChan(u)
-	jobs := make(chan tgbotapi.Update, numWorkers)
+	jobs := make(chan tgbotapi.Update, b.numWorkers)
 
-	for i := 0; i < numWorkers; i++ {
+	for i := int8(0); i < b.numWorkers; i++ {
 		b.wg.Add(1)
 		go b.worker(ctx, jobs)
 	}

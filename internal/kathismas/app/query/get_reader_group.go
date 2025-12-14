@@ -13,10 +13,11 @@ type GetReaderGroup struct {
 }
 
 type PsalmReaderDTO struct {
-	ID         string `json:"id"`
-	Username   string `json:"username"`
-	TelegramID int64  `json:"telegram_id"`
-	Phone      string `json:"phone"`
+	ID           string `json:"id"`
+	Username     string `json:"username"`
+	ReaderNumber int8   `json:"reader_number"`
+	TelegramID   int64  `json:"telegram_id"`
+	Phone        string `json:"phone"`
 }
 
 type ReaderGroupDetailDTO struct {
@@ -26,6 +27,21 @@ type ReaderGroupDetailDTO struct {
 	Readers     []PsalmReaderDTO `json:"readers"`
 	CreatedAt   string           `json:"created_at"`
 	UpdatedAt   string           `json:"updated_at"`
+}
+
+func (dto *ReaderGroupDetailDTO) GetAvailableReaderNumbers() []int8 {
+	usedNumbers := make(map[int8]bool)
+	for _, r := range dto.Readers {
+		usedNumbers[r.ReaderNumber] = true
+	}
+
+	available := make([]int8, 0, 20-len(dto.Readers))
+	for i := int8(1); i <= 20; i++ {
+		if !usedNumbers[i] {
+			available = append(available, i)
+		}
+	}
+	return available
 }
 
 type GetReaderGroupHandler struct {
@@ -48,10 +64,11 @@ func (h GetReaderGroupHandler) Handle(ctx context.Context, q GetReaderGroup) (*R
 	readers := make([]PsalmReaderDTO, 0, len(group.Readers))
 	for _, reader := range group.Readers {
 		readers = append(readers, PsalmReaderDTO{
-			ID:         reader.ID.String(),
-			Username:   reader.Username,
-			TelegramID: reader.TelegramID,
-			Phone:      reader.Phone,
+			ID:           reader.ID.String(),
+			Username:     reader.Username,
+			ReaderNumber: reader.ReaderNumber,
+			TelegramID:   reader.TelegramID,
+			Phone:        reader.Phone,
 		})
 	}
 

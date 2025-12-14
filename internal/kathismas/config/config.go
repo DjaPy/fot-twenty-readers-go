@@ -8,10 +8,11 @@ import (
 
 type Config struct {
 	System struct {
-		BaseUrl string `yaml:"baseUrl" env:"BASE_URL"`
+		BaseUrl string `yaml:"base_url" env:"SYSTEM_BASE_URL"`
 	}
 	Telegram struct {
-		BotToken string `yaml:"botToken" env:"BOT_TOKEN"`
+		BotToken   string `yaml:"bot_token" env:"TELEGRAM_BOT_TOKEN"`
+		NumWorkers int8   `yaml:"num_workers" env:"TELEGRAM_NUM_WORKERS" envDefault:"10"`
 	}
 }
 

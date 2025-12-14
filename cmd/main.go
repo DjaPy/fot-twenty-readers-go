@@ -51,8 +51,10 @@ func main() {
 
 		bot, err := telegram.NewBot(
 			opts.TelegramToken,
+			cfg.Telegram.NumWorkers,
 			&app.Commands.AddReaderToGroup,
 			&app.Queries.ListReaderGroups,
+			&app.Queries.GetReaderGroup,
 			&app.Queries.GetCurrentKathisma,
 			app.Queries.GetReaderByTelegramID,
 			logger,
