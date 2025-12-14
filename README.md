@@ -2,7 +2,6 @@
 
 [![Tests](https://github.com/DjaPy/fot-twenty-readers-go/workflows/Tests/badge.svg)](https://github.com/DjaPy/fot-twenty-readers-go/actions/workflows/test.yml)
 [![golangci-lint](https://github.com/DjaPy/fot-twenty-readers-go/workflows/golangci-lint/badge.svg)](https://github.com/DjaPy/fot-twenty-readers-go/actions/workflows/golangci-lint.yml)
-[![codecov](https://codecov.io/gh/DjaPy/fot-twenty-readers-go/branch/main/graph/badge.svg)](https://codecov.io/gh/DjaPy/fot-twenty-readers-go)
 
 Go application for generating psalm reading calendars for Orthodox Church readers.
 
