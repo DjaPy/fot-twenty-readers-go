@@ -1,51 +1,51 @@
 # fot-twenty-readers-go
 
-Go-приложение для генерации календарей чтения псалмов для чтецов.
+Go application for generating psalm reading calendars for Orthodox Church readers.
 
-## О проекте
+## About the Project
 
-Приложение создает Excel-календари, распределяющие чтение Псалтири (150 псалмов, разделенных на 20 кафизм) между 20 чтецами в течение года с учетом православного календаря.
+The application creates Excel calendars that distribute the reading of the Psalter (150 psalms divided into 20 kathismas) among 20 readers throughout the year, accounting for the Orthodox calendar.
 
-### Возможности
+### Features
 
-- Управление группами чтецов с настраиваемым стартовым смещением
-- Генерация Excel-календарей на любой год (2025-2045)
-- Хранение календарей в базе данных
-- Получение текущей кафизмы по номеру чтеца
-- Web-интерфейс с HTMX
+- Manage reader groups with customizable start offset
+- Generate Excel calendars for any year (2025-2045)
+- Store calendars in database
+- Retrieve current kathisma by reader number
+- Web interface with HTMX
 
-## Быстрый старт
+## Quick Start
 
 ```bash
-# Клонировать репозиторий
+# Clone the repository
 git clone https://github.com/DjaPy/fot-twenty-readers-go.git
 cd fot-twenty-readers-go
 
-# Собрать и запустить
+# Build and run
 go build -o for-twenty-readers cmd/main.go
 ./for-twenty-readers --port 8080
 ```
 
-Откройте браузер: http://localhost:8080
+Open browser: http://localhost:8080
 
 ## API
 
-### Основные endpoints
+### Main Endpoints
 
 ```bash
-# Создать группу чтецов
+# Create reader group
 POST /groups
-  name=Храм Покрова&start_offset=1
+  name=Church Name&start_offset=1
 
-# Сгенерировать календарь
+# Generate calendar
 POST /groups/{id}/generate
   year=2025
 
-# Узнать текущую кафизму
+# Get current kathisma
 GET /groups/{id}/current-kathisma?reader_number=5
 ```
 
-### Пример: узнать текущую кафизму
+### Example: Get Current Kathisma
 
 ```bash
 curl "http://localhost:8080/groups/{group-id}/current-kathisma?reader_number=5"
@@ -61,21 +61,21 @@ Response:
 }
 ```
 
-## Технологии
+## Technologies
 
 - **Go 1.22+**
-- **Storm/BoltDB** - встроенная БД
-- **Excelize** - генерация Excel
-- **Chi** - HTTP роутер
-- **HTMX** - динамический UI
+- **Storm/BoltDB** - embedded database
+- **Excelize** - Excel generation
+- **Chi** - HTTP router
+- **HTMX** - dynamic UI
 - **Tailwind CSS**
 
-## Разработка
+## Development
 
 ```bash
-just lint           # Линтинг
-just test           # Тесты
-just all-check      # Полная проверка
+just lint           # Linting
+just test           # Tests
+just all-check      # Full check
 ```
 
 ## Docker
@@ -85,11 +85,11 @@ docker build -t for-twenty-readers .
 docker run -p 8080:8080 for-twenty-readers
 ```
 
-## Лицензия
+## License
 
 MIT
 
-## Контакты
+## Contact
 
 - GitHub: [@DjaPy](https://github.com/DjaPy)
 - Issues: [GitHub Issues](https://github.com/DjaPy/fot-twenty-readers-go/issues)

@@ -216,16 +216,32 @@ func (s *Server) addReaderToGroup(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := r.ParseForm(); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+	if err := r.ParseMultipartForm(32 << 20); err != nil {
+		// If it's not multipart, try ParseForm as fallback
+		if err := r.ParseForm(); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+	}
+
+	readerNumber := atoi(r.FormValue("reader_number"))
+	if readerNumber < 1 || readerNumber > 20 {
+		http.Error(w, "reader number must be between 1 and 20", http.StatusBadRequest)
+		return
+	}
+
+	username := r.FormValue("username")
+	if username == "" {
+		http.Error(w, "username is required", http.StatusBadRequest)
 		return
 	}
 
 	cmd := command.AddReaderToGroup{
-		GroupID:    groupID,
-		Username:   r.FormValue("username"),
-		TelegramID: int64(atoi(r.FormValue("telegram_id"))),
-		Phone:      r.FormValue("phone"),
+		GroupID:      groupID,
+		ReaderNumber: int8(readerNumber),
+		Username:     username,
+		TelegramID:   int64(atoi(r.FormValue("telegram_id"))),
+		Phone:        r.FormValue("phone"),
 	}
 
 	if err := s.App.Commands.AddReaderToGroup.Handle(r.Context(), cmd); err != nil {

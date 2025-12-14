@@ -61,10 +61,6 @@ func UnmarshallReaderGroup(
 }
 
 func (rg *ReaderGroup) AddReader(reader *PsalmReader) error {
-	if reader.ReaderNumber < 1 || reader.ReaderNumber > 20 {
-		return fmt.Errorf("reader number must be between 1 and 20, got %d", reader.ReaderNumber)
-	}
-
 	if len(rg.Readers) >= 20 {
 		return fmt.Errorf("group already has maximum number of readers (20)")
 	}
