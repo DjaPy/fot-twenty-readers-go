@@ -2,12 +2,12 @@ package command
 
 import (
 	"context"
+	"log/slog"
 
 	"github.com/DjaPy/fot-twenty-readers-go/internal/common/decorator"
 	"github.com/DjaPy/fot-twenty-readers-go/internal/common/errors"
 	"github.com/DjaPy/fot-twenty-readers-go/internal/kathismas/adapters"
 	"github.com/DjaPy/fot-twenty-readers-go/internal/kathismas/domain"
-	"github.com/sirupsen/logrus"
 )
 
 type CreatePsalmReaderTG struct {
@@ -25,7 +25,7 @@ type createPsalmReaderTGHandler struct {
 
 func NewCreatePsalmReaderTGHandler(
 	repo *adapters.PsalmReaderTGRepository,
-	logger *logrus.Entry,
+	logger *slog.Logger,
 	metricsClient decorator.MetricsClient,
 ) decorator.CommandHandler[CreatePsalmReaderTG] {
 	return decorator.ApplyCommandDecorators[CreatePsalmReaderTG](

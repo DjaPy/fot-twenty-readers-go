@@ -23,7 +23,7 @@ import (
 
 type Server struct {
 	Version       string
-	Conf          config.Conf
+	Conf          config.Config
 	TemplLocation string
 	App           *app.Application
 
@@ -32,16 +32,17 @@ type Server struct {
 }
 
 func (s *Server) Run(ctx context.Context, port int) {
-	slog.Info(fmt.Sprintf("starting server on port %d", port))
+	slog.Info("starting server", "port", port)
 
 	serverLock := sync.Mutex{}
 
 	go func() {
 		<-ctx.Done()
 		serverLock.Lock()
+		defer serverLock.Unlock()
 		if s.httpServer != nil {
 			if clsErr := s.httpServer.Close(); clsErr != nil {
-				slog.Error(fmt.Sprintf("failed to close proxy http server, %v", clsErr))
+				slog.Error("failed to close proxy http server", "error", clsErr)
 			}
 		}
 	}()
@@ -49,7 +50,7 @@ func (s *Server) Run(ctx context.Context, port int) {
 	if s.TemplLocation == "" {
 		s.TemplLocation = "internal/kathismas/ports/templates/*"
 	}
-	slog.Debug(fmt.Sprintf("loading templates from %s", s.TemplLocation))
+	slog.Debug("loading templates", "location", s.TemplLocation)
 
 	funcMap := template.FuncMap{
 		"add": func(a, b int) int {
@@ -68,7 +69,7 @@ func (s *Server) Run(ctx context.Context, port int) {
 	}
 	serverLock.Unlock()
 	err := s.httpServer.ListenAndServe()
-	slog.Warn(fmt.Sprintf("http server terminated, %s", err))
+	slog.Warn("http server terminated", "error", err)
 }
 
 func (s *Server) router() *chi.Mux {
@@ -283,16 +284,16 @@ func (s *Server) generateCalendarForGroup(w http.ResponseWriter, r *http.Request
 		Year:    year,
 	}
 
-	slog.Info(fmt.Sprintf("starting calendar generation for group %s, year %d", groupID, year))
+	slog.Info("starting calendar generation", "group_id", groupID, "year", year)
 	startTime := time.Now()
 
 	buffer, errGC := s.App.Commands.GenerateCalendarForGroup.Handle(r.Context(), cmd)
 
 	duration := time.Since(startTime)
-	slog.Info(fmt.Sprintf("calendar generation completed in %v", duration))
+	slog.Info("calendar generation completed", "duration", duration)
 
 	if errGC != nil {
-		slog.Error(fmt.Sprintf("failed to generate calendar: %v", errGC))
+		slog.Error("failed to generate calendar", "error", errGC)
 		http.Error(w, "failed to generate calendar", http.StatusInternalServerError)
 		return
 	}
@@ -305,7 +306,7 @@ func (s *Server) generateCalendarForGroup(w http.ResponseWriter, r *http.Request
 	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=\"%q\"", filename))
 	w.WriteHeader(http.StatusOK)
 	if _, err := w.Write(buffer.Bytes()); err != nil {
-		slog.Error(fmt.Sprintf("failed to write response: %v", err))
+		slog.Error("failed to write response", "error", err)
 	}
 }
 

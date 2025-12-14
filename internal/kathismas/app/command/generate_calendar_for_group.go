@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"os"
 	"time"
 
 	"github.com/DjaPy/fot-twenty-readers-go/internal/kathismas/domain"
@@ -30,7 +31,8 @@ func NewGenerateCalendarForGroupHandler(
 	generator CalendarGenerator,
 ) GenerateCalendarForGroupHandler {
 	if groupRepo == nil || generator == nil {
-		slog.Error("not found group repo or generator calendar")
+		slog.Error("not found group repo or generator calendar in NewGenerateCalendarForGroupHandler")
+		os.Exit(1)
 	}
 	return GenerateCalendarForGroupHandler{
 		groupRepo: groupRepo,

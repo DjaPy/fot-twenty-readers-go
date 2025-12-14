@@ -4,14 +4,13 @@ go 1.25
 
 require (
 	github.com/asdine/storm/v3 v3.2.1
+	github.com/caarlos0/env/v10 v10.0.0
 	github.com/go-chi/chi/v5 v5.0.11
 	github.com/go-chi/render v1.0.3
-	github.com/go-pkgz/lgr v0.11.1
 	github.com/go-pkgz/rest v1.18.2
 	github.com/go-telegram-bot-api/telegram-bot-api/v5 v5.5.1
 	github.com/gofrs/uuid/v5 v5.3.0
 	github.com/jessevdk/go-flags v1.5.0
-	github.com/sirupsen/logrus v1.9.3
 	github.com/stretchr/testify v1.9.0
 	github.com/wk8/go-ordered-map/v2 v2.1.8
 	github.com/xuri/excelize/v2 v2.8.1

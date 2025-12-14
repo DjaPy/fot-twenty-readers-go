@@ -37,13 +37,13 @@ func (h *GetReaderByTelegramIDHandler) Handle(ctx context.Context, q *GetReaderB
 	}
 
 	for _, group := range groups {
-		for i, reader := range group.Readers {
+		for _, reader := range group.Readers {
 			if reader.TelegramID == q.TelegramID {
 				return &GetReaderByTelegramIDResult{
 					GroupID:      group.ID,
 					GroupName:    group.Name,
 					ReaderID:     reader.ID,
-					ReaderNumber: i + 1,
+					ReaderNumber: int(reader.ReaderNumber),
 					Username:     reader.Username,
 				}, nil
 			}

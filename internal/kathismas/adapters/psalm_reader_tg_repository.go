@@ -4,7 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log"
+	"log/slog"
+	"os"
 	"time"
 
 	"github.com/DjaPy/fot-twenty-readers-go/internal/kathismas/domain"
@@ -28,7 +29,8 @@ type PsalmReaderTGRepository struct {
 
 func NewPsalmReaderTGRepository(db *storm.DB) *PsalmReaderTGRepository {
 	if db == nil {
-		log.Fatal("missing db")
+		slog.Error("missing db in NewPsalmReaderTGRepository")
+		os.Exit(1)
 	}
 	return &PsalmReaderTGRepository{db: db}
 }

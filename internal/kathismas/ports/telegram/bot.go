@@ -3,17 +3,21 @@ package telegram
 import (
 	"context"
 	"fmt"
+	"log/slog"
+	"sync"
 
 	"github.com/DjaPy/fot-twenty-readers-go/internal/kathismas/app/command"
 	"github.com/DjaPy/fot-twenty-readers-go/internal/kathismas/app/query"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
-	"github.com/sirupsen/logrus"
 )
+
+const numWorkers = 10
 
 type Bot struct {
 	api      *tgbotapi.BotAPI
 	handlers *Handlers
-	log      *logrus.Logger
+	log      *slog.Logger
+	wg       sync.WaitGroup
 }
 
 func NewBot(
@@ -22,7 +26,7 @@ func NewBot(
 	listGroupsHandler *query.ListReaderGroupsHandler,
 	getCurrentKathismaHandler *query.GetCurrentKathismaHandler,
 	getReaderByTelegramIDHandler query.GetReaderByTelegramIDHandler,
-	log *logrus.Logger,
+	log *slog.Logger,
 ) (*Bot, error) {
 	bot, err := tgbotapi.NewBotAPI(token)
 	if err != nil {
@@ -39,7 +43,7 @@ func NewBot(
 		log,
 	)
 
-	log.Infof("Authorized on account %s", bot.Self.UserName)
+	log.Info("Authorized on account", "username", bot.Self.UserName)
 
 	return &Bot{
 		api:      bot,
@@ -55,19 +59,34 @@ func (b *Bot) Start(ctx context.Context) error {
 	u.Timeout = 60
 
 	updates := b.api.GetUpdatesChan(u)
+	jobs := make(chan tgbotapi.Update, numWorkers)
+
+	for i := 0; i < numWorkers; i++ {
+		b.wg.Add(1)
+		go b.worker(ctx, jobs)
+	}
 
 	for {
 		select {
 		case <-ctx.Done():
 			b.log.Info("Stopping Telegram bot...")
+			close(jobs)
+			b.wg.Wait()
 			b.api.StopReceivingUpdates()
 			return fmt.Errorf("telegram bot context finished: %w", ctx.Err())
 		case update := <-updates:
-			if update.Message != nil {
-				go b.handleUpdate(ctx, update)
-			} else if update.CallbackQuery != nil {
-				go b.handleCallbackQuery(ctx, update)
-			}
+			jobs <- update
+		}
+	}
+}
+
+func (b *Bot) worker(ctx context.Context, jobs <-chan tgbotapi.Update) {
+	defer b.wg.Done()
+	for update := range jobs {
+		if update.Message != nil {
+			b.handleUpdate(ctx, update)
+		} else if update.CallbackQuery != nil {
+			b.handleCallbackQuery(ctx, update)
 		}
 	}
 }
@@ -75,17 +94,17 @@ func (b *Bot) Start(ctx context.Context) error {
 func (b *Bot) handleUpdate(ctx context.Context, update tgbotapi.Update) {
 	if update.Message.IsCommand() {
 		if err := b.handlers.HandleCommand(ctx, b.api, update.Message); err != nil {
-			b.log.Errorf("Error handling command: %v", err)
+			b.log.Error("error handling command", "error", err)
 		}
 	} else {
 		if err := b.handlers.HandleMessage(ctx, b.api, update.Message); err != nil {
-			b.log.Errorf("Error handling message: %v", err)
+			b.log.Error("error handling message", "error", err)
 		}
 	}
 }
 
 func (b *Bot) handleCallbackQuery(ctx context.Context, update tgbotapi.Update) {
 	if err := b.handlers.HandleCallbackQuery(ctx, b.api, update.CallbackQuery); err != nil {
-		b.log.Errorf("Error handling callback query: %v", err)
+		b.log.Error("error handling callback query", "error", err)
 	}
 }

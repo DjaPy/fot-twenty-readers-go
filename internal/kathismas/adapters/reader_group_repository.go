@@ -4,7 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log"
+	"log/slog"
+	"os"
 	"time"
 
 	"github.com/DjaPy/fot-twenty-readers-go/internal/kathismas/domain"
@@ -36,7 +37,8 @@ type ReaderGroupRepository struct {
 
 func NewReaderGroupRepository(db *storm.DB) *ReaderGroupRepository {
 	if db == nil {
-		log.Fatal("missing db")
+		slog.Error("missing db in NewReaderGroupRepository")
+		os.Exit(1)
 	}
 	return &ReaderGroupRepository{db: db}
 }
@@ -171,11 +173,13 @@ func (r *ReaderGroupRepository) unmarshalFromDB(dbGroup *ReaderGroupDB) (*domain
 
 		createdAt, err := time.Parse(time.RFC3339, dbCalendar.CreatedAt)
 		if err != nil {
+			slog.Warn("failed to parse calendar created_at", "error", err)
 			createdAt = time.Now()
 		}
 
 		updatedAt, err := time.Parse(time.RFC3339, dbCalendar.UpdatedAt)
 		if err != nil {
+			slog.Warn("failed to parse calendar updated_at", "error", err)
 			updatedAt = time.Now()
 		}
 

@@ -1,0 +1,84 @@
+@startuml
+' !theme vibrant
+hide empty members
+skinparam linetype ortho
+skinparam roundcorner 20
+skinparam class {
+    ArrowColor #2688d4
+    BorderColor #2688d4
+    BackgroundColor #white
+}
+skinparam note {
+    BorderColor #2688d4
+    BackgroundColor #white
+}
+
+package "Adapters (storage)" {
+    class ReaderGroupRepository {
+        - db: *storm.DB
+        + Create(group *domain.ReaderGroup)
+        + GetByID(id uuid.UUID) *domain.ReaderGroup
+        + GetAll() []domain.ReaderGroup
+        + Update(group *domain.ReaderGroup)
+        + Delete(id uuid.UUID)
+        # marshalToDB(group *domain.ReaderGroup) ReaderGroupDB
+        # unmarshalFromDB(dbGroup *ReaderGroupDB) *domain.ReaderGroup
+    }
+
+    class ReaderGroupDB <<(S, #FF7700) storm:"node">> {
+        + ID: string `storm:"id"`
+        + Name: string `storm:"index"`
+        + Readers: []PsalmReaderTGDB
+        + StartOffset: int
+        + Calendars: []CalendarRefDB
+        + CreatedAt: time.Time
+        + UpdatedAt: time.Time
+    }
+
+    class PsalmReaderTGDB <<(S, #FF7700) storm:"node">> {
+        + ID: uuid.UUID `storm:"id"`
+        + Username: string `storm:"index"`
+        + TelegramID: int64 `storm:"index,unique"`
+        + Phone: string
+        + CreatedAt: time.Time
+        + UpdatedAt: time.Time
+    }
+
+    class CalendarRefDB <<(S, #FF7700) storm:"node">> {
+        + ID: string
+        + Year: int
+        + Calendar: domain.CalendarMap
+        + CreatedAt: string
+        + UpdatedAt: string
+    }
+
+    class PsalmReaderTGRepository {
+        - db: *storm.DB
+        + GetPsalmReaderTG(id uuid.UUID) *domain.PsalmReader
+        + CreatePsalmReaderTG(psalmReader *domain.PsalmReader)
+    }
+    note right of PsalmReaderTGRepository: На данный момент не используется\nнапрямую в ReaderGroupRepository
+
+    class CalendarOfReaderRepository {
+        - db: *storm.DB
+        + GetCalendar(id uuid.UUID) *domain.CalendarOfReader
+        + CreateCalendarOfReader(calendar *domain.CalendarOfReader)
+    }
+    note right of CalendarOfReaderRepository: На данный момент не используется\nнапрямую в ReaderGroupRepository
+}
+
+package "Domain" {
+    class ReaderGroup
+    class PsalmReader
+    class CalendarOfReader
+}
+
+ReaderGroupRepository ..> ReaderGroup : "unmarshals to"
+ReaderGroupRepository ..> PsalmReader : "unmarshals to"
+ReaderGroupRepository ..> CalendarOfReader : "unmarshals to"
+
+ReaderGroupRepository +-- ReaderGroupDB : "marshals/unmarshals"
+ReaderGroupDB o-- "many" PsalmReaderTGDB
+ReaderGroupDB o-- "many" CalendarRefDB
+
+@enduml

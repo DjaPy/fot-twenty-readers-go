@@ -2,9 +2,8 @@ package service
 
 import (
 	"context"
-	"fmt"
-	"log"
 	"log/slog"
+	"os"
 
 	"github.com/DjaPy/fot-twenty-readers-go/internal/common/metrics"
 	"github.com/DjaPy/fot-twenty-readers-go/internal/kathismas/adapters"
@@ -14,22 +13,21 @@ import (
 	"github.com/DjaPy/fot-twenty-readers-go/internal/kathismas/app/query"
 	"github.com/asdine/storm/v3"
 	"github.com/asdine/storm/v3/codec/json"
-	"github.com/sirupsen/logrus"
 )
 
-func NewApplication(ctx context.Context) *app.Application {
+func NewApplication(ctx context.Context, logger *slog.Logger) *app.Application {
 	db, err := storm.Open("for-twenty-readers.db", storm.Codec(json.Codec))
 	if err != nil {
-		log.Fatalf("Could not open database: %v", err)
+		slog.Error("could not open database", "error", err)
+		os.Exit(1)
 	}
 
 	cleanup := func() {
 		if errClose := db.Close(); errClose != nil {
-			slog.Error(fmt.Sprintf("Could not close database: %v", errClose))
+			slog.Error("could not close database", "error", errClose)
 		}
 	}
 
-	logger := logrus.NewEntry(logrus.StandardLogger())
 	metricsClient := metrics.NoOp{}
 
 	psalmReaderTGRepository := adapters.NewPsalmReaderTGRepository(db)

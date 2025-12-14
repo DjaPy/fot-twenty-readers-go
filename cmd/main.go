@@ -2,7 +2,7 @@ package main
 
 import (
 	"context"
-	"fmt"
+	"errors"
 	"log/slog"
 	"os"
 	"os/signal"
@@ -12,9 +12,7 @@ import (
 	"github.com/DjaPy/fot-twenty-readers-go/internal/kathismas/ports"
 	"github.com/DjaPy/fot-twenty-readers-go/internal/kathismas/ports/telegram"
 	"github.com/DjaPy/fot-twenty-readers-go/internal/kathismas/service"
-	log "github.com/go-pkgz/lgr"
 	"github.com/jessevdk/go-flags"
-	"github.com/sirupsen/logrus"
 )
 
 type options struct {
@@ -27,25 +25,29 @@ type options struct {
 var revision = "local"
 
 func main() {
-	slog.Info(fmt.Sprintf("For twenty readers %s\n", revision))
 	var opts options
 	if _, err := flags.Parse(&opts); err != nil {
-		slog.Error(err.Error())
+		slog.Error("failed to parse flags", "error", err)
 		os.Exit(1)
 	}
 	setupLog(opts.Dbg)
+	logger := slog.Default()
+
+	slog.Info("For twenty readers", "revision", revision)
+
+	cfg, err := config.NewConfiguration()
+	if err != nil {
+		slog.Error("failed to load config", "error", err)
+		os.Exit(1)
+	}
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	app := service.NewApplication(ctx)
+	app := service.NewApplication(ctx, logger)
 	defer app.Close()
 
 	if opts.TelegramToken != "" {
-		logger := logrus.New()
-		if opts.Dbg {
-			logger.SetLevel(logrus.DebugLevel)
-		}
 
 		bot, err := telegram.NewBot(
 			opts.TelegramToken,
@@ -56,12 +58,12 @@ func main() {
 			logger,
 		)
 		if err != nil {
-			slog.Error(fmt.Sprintf("Failed to create Telegram bot: %v", err))
+			slog.Error("failed to create Telegram bot", "error", err)
 		} else {
 			go func() {
 				slog.Info("Starting Telegram bot...")
-				if err := bot.Start(ctx); err != nil && err != context.Canceled {
-					slog.Error(fmt.Sprintf("Telegram bot error: %v", err))
+				if err := bot.Start(ctx); err != nil && !errors.Is(err, context.Canceled) {
+					slog.Error("telegram bot error", "error", err)
 				}
 			}()
 		}
@@ -78,16 +80,18 @@ func main() {
 
 	srv := &ports.Server{
 		Version: revision,
-		Conf:    config.Conf{},
+		Conf:    *cfg,
 		App:     app,
 	}
 	srv.Run(ctx, opts.Port)
 }
 
 func setupLog(dbg bool) {
+	logLevel := slog.LevelInfo
 	if dbg {
-		log.Setup(log.Debug, log.CallerFile, log.Msec, log.LevelBraces)
-		return
+		logLevel = slog.LevelDebug
 	}
-	log.Setup(log.Msec, log.LevelBraces)
+	slog.SetDefault(slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{
+		Level: logLevel,
+	})))
 }

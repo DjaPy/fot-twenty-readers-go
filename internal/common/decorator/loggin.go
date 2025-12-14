@@ -2,30 +2,28 @@ package decorator
 
 import (
 	"context"
-	"fmt"
-
-	"github.com/sirupsen/logrus"
+	"log/slog"
 )
 
 type commandLoggingDecorator[C any] struct {
 	base   CommandHandler[C]
-	logger *logrus.Entry
+	logger *slog.Logger
 }
 
 func (d commandLoggingDecorator[C]) Handle(ctx context.Context, cmd C) (err error) {
 	handlerType := generateActionName(cmd)
 
-	logger := d.logger.WithFields(logrus.Fields{
-		"command":      handlerType,
-		"command_body": fmt.Sprintf("%#v", cmd),
-	})
+	logger := d.logger.With(slog.Group("command_fields",
+		"command", handlerType,
+		"command_body", cmd,
+	))
 
-	logger.Debug("Executing command")
+	logger.Info("Executing command")
 	defer func() {
 		if err == nil {
 			logger.Info("Command executed successfully")
 		} else {
-			logger.WithError(err).Error("Failed to execute command")
+			logger.Error("Failed to execute command", "error", err)
 		}
 	}()
 

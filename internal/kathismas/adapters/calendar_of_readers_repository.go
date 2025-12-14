@@ -3,7 +3,8 @@ package adapters
 import (
 	"errors"
 	"fmt"
-	"log"
+	"log/slog"
+	"os"
 	"time"
 
 	"github.com/DjaPy/fot-twenty-readers-go/internal/kathismas/domain"
@@ -25,7 +26,8 @@ type CalendarOfReaderRepository struct {
 
 func NewCalendarOfReaderRepository(db *storm.DB) *CalendarOfReaderRepository {
 	if db == nil {
-		log.Fatal("missing db")
+		slog.Error("missing db in NewCalendarOfReaderRepository")
+		os.Exit(1)
 	}
 	return &CalendarOfReaderRepository{db: db}
 }
