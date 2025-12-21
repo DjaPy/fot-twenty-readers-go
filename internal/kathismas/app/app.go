@@ -30,6 +30,7 @@ type Commands struct {
 	CreateReaderGroup        command.CreateReaderGroupHandler
 	AddReaderToGroup         command.AddReaderToGroupHandler
 	GenerateCalendarForGroup command.GenerateCalendarForGroupHandler
+	RemoveReaderFromGroup    command.RemoveReaderFromGroupHandler
 }
 
 type Queries struct {

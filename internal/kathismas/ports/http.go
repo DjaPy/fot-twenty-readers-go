@@ -86,6 +86,7 @@ func (s *Server) router() *chi.Mux {
 	router.Post("/groups", s.createGroup)
 	router.Get("/groups/{id}", s.getGroupPage)
 	router.Post("/groups/{id}/readers", s.addReaderToGroup)
+	router.Delete("/groups/{id}/readers/{readerId}", s.removeReaderFromGroup)
 	router.Post("/groups/{id}/generate", s.generateCalendarForGroup)
 	router.Get("/groups/{id}/current-kathisma", s.getCurrentKathisma)
 
@@ -95,17 +96,14 @@ func (s *Server) router() *chi.Mux {
 // Groups page - main page with HTMX
 func (s *Server) groupsPage(w http.ResponseWriter, r *http.Request) {
 	data := struct {
-		Title string
+		Title           string
+		ContentTemplate string
 	}{
-		Title: "Группы чтецов",
+		Title:           "Группы чтецов",
+		ContentTemplate: "groups-content",
 	}
 
 	if err := s.templates.ExecuteTemplate(w, "layout.gohtml", data); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	if err := s.templates.ExecuteTemplate(w, "groups.gohtml", nil); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 }
@@ -199,12 +197,17 @@ func (s *Server) getGroupPage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := s.templates.ExecuteTemplate(w, "layout.gohtml", struct{ Title string }{Title: group.Name}); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
+	data := struct {
+		Title           string
+		ContentTemplate string
+		*query.ReaderGroupDetailDTO
+	}{
+		Title:                group.Name,
+		ContentTemplate:      "group-detail-content",
+		ReaderGroupDetailDTO: group,
 	}
 
-	if err := s.templates.ExecuteTemplate(w, "group-detail.gohtml", group); err != nil {
+	if err := s.templates.ExecuteTemplate(w, "layout.gohtml", data); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 }
@@ -247,6 +250,39 @@ func (s *Server) addReaderToGroup(w http.ResponseWriter, r *http.Request) {
 
 	if err := s.App.Commands.AddReaderToGroup.Handle(r.Context(), cmd); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	http.Redirect(w, r, fmt.Sprintf("/groups/%s", idStr), http.StatusSeeOther)
+}
+
+func (s *Server) removeReaderFromGroup(w http.ResponseWriter, r *http.Request) {
+	idStr := chi.URLParam(r, "id")
+	groupID, err := uuid.FromString(idStr)
+	if err != nil {
+		http.Error(w, "invalid group id", http.StatusBadRequest)
+		return
+	}
+
+	readerIDStr := chi.URLParam(r, "readerId")
+	readerID, err := uuid.FromString(readerIDStr)
+	if err != nil {
+		http.Error(w, "invalid reader id", http.StatusBadRequest)
+		return
+	}
+
+	cmd := command.RemoveReaderFromGroup{
+		GroupID:  groupID,
+		ReaderID: readerID,
+	}
+
+	if err := s.App.Commands.RemoveReaderFromGroup.Handle(r.Context(), cmd); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	if r.Header.Get("HX-Request") == "true" {
+		w.WriteHeader(http.StatusOK)
 		return
 	}
 

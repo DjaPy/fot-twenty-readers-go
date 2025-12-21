@@ -40,6 +40,7 @@ func NewApplication(ctx context.Context, logger *slog.Logger) *app.Application {
 			CreateReaderGroup:        command.NewCreateReaderGroupHandler(readerGroupRepository),
 			AddReaderToGroup:         command.NewAddReaderToGroupHandler(readerGroupRepository),
 			GenerateCalendarForGroup: command.NewGenerateCalendarForGroupHandler(readerGroupRepository, calendarGenerator),
+			RemoveReaderFromGroup:    command.NewRemoveReaderFromGroupHandler(readerGroupRepository),
 		},
 		app.Queries{
 			ListReaderGroups:      query.NewListReaderGroupsHandler(readerGroupRepository),

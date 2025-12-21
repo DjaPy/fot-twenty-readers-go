@@ -1,53 +1,54 @@
 <!DOCTYPE html>
 <html lang="ru">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{if .Title}}{{.Title}} - {{end}}Календарь для 20 чтецов</title>
-    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <style>
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>{{if .Title}}{{.Title}} - {{end}}Календарь для 20 чтецов</title>
+        <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+        <script src="https://cdn.tailwindcss.com"></script>
+        <style>
         [x-cloak] { display: none !important; }
         .htmx-swapping { opacity: 0; transition: opacity 200ms ease-out; }
         .htmx-settling { opacity: 1; }
         .htmx-indicator { display: none; }
         .htmx-request .htmx-indicator { display: inline-block; }
         .htmx-request.htmx-indicator { display: inline-block; }
-    </style>
-</head>
-<body class="bg-gray-50 min-h-screen">
-    <!-- Navigation -->
-    <nav class="bg-white shadow-sm border-b border-gray-200">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex justify-between h-16">
-                <div class="flex">
-                    <div class="flex-shrink-0 flex items-center">
-                        <h1 class="text-xl font-semibold text-gray-900">📖 Календарь чтения Псалтири</h1>
+        </style>
+    </head>
+    <body class="bg-gray-50 min-h-screen">
+        <!-- Navigation -->
+        <nav class="bg-white shadow-sm border-b border-gray-200">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex justify-between h-16">
+                    <div class="flex">
+                        <div class="flex-shrink-0 flex items-center">
+                            <h1 class="text-xl font-semibold text-gray-900">📖 Календарь чтения Псалтири</h1>
+                        </div>
+                    </div>
+                    <div class="flex items-center space-x-4">
+                        <a href="/groups"
+                           class="text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium transition">
+                            Группы чтецов
+                        </a>
+                        <a href="/calendar"
+                           class="text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium transition">
+                            Старый формат
+                        </a>
                     </div>
                 </div>
-                <div class="flex items-center space-x-4">
-                    <a href="/groups"
-                       class="text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium transition">
-                        Группы чтецов
-                    </a>
-                    <a href="/calendar"
-                       class="text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium transition">
-                        Старый формат
-                    </a>
-                </div>
             </div>
-        </div>
-    </nav>
-
-    <!-- Main Content -->
-    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {{template "content" .}}
-    </main>
-
-    <!-- Toast notifications -->
-    <div id="toast-container" class="fixed bottom-4 right-4 z-50"></div>
-
-    <script>
+        </nav>
+        <!-- Main Content -->
+        <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            {{if eq .ContentTemplate "groups-content"}}
+            {{template "groups-content" .}}
+            {{else if eq .ContentTemplate "group-detail-content"}}
+            {{template "group-detail-content" .}}
+            {{end}}
+        </main>
+        <!-- Toast notifications -->
+        <div id="toast-container" class="fixed bottom-4 right-4 z-50"></div>
+        <script>
         // Toast notification helper
         function showToast(message, type = 'success') {
             const toast = document.createElement('div');
@@ -113,6 +114,6 @@
                 }, 3000);
             }
         }
-    </script>
-</body>
+        </script>
+    </body>
 </html>

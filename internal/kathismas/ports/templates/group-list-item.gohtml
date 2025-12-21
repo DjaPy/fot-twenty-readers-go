@@ -10,13 +10,11 @@
             </div>
             <p class="mt-1 text-xs text-gray-400">Создана: {{.CreatedAt}}</p>
         </div>
-
         <div class="flex space-x-2">
             <button onclick="openReaderModal('{{.ID}}')"
                     class="px-3 py-1 text-sm bg-green-100 text-green-700 rounded hover:bg-green-200 transition">
                 + Чтец
             </button>
-
             <form action="/groups/{{.ID}}/generate"
                   method="POST"
                   class="inline-flex items-center gap-1"
@@ -30,26 +28,31 @@
                 <button type="submit"
                         class="px-3 py-1 text-sm bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition whitespace-nowrap disabled:opacity-50">
                     <span class="hidden spinner" data-spinner>
-                        <svg class="inline animate-spin h-4 w-4 mr-1" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <svg class="inline animate-spin h-4 w-4 mr-1"
+                             xmlns="http://www.w3.org/2000/svg"
+                             fill="none"
+                             viewBox="0 0 24 24">
                             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
+                            </path>
                         </svg>
                     </span>
                     📥 Календарь
                 </button>
             </form>
-
             <a href="/groups/{{.ID}}"
-               class="px-3 py-1 text-sm bg-gray-100 text-gray-700 rounded hover:bg-gray-200 transition">
-                Подробнее
-            </a>
+               class="px-3 py-1 text-sm bg-gray-100 text-gray-700 rounded hover:bg-gray-200 transition">Подробнее</a>
         </div>
     </div>
 </div>
 {{else}}
 <div class="p-8 text-center text-gray-500">
-    <svg class="w-16 h-16 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+    <svg class="w-16 h-16 mx-auto mb-4 text-gray-300"
+         fill="none"
+         stroke="currentColor"
+         viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z">
+        </path>
     </svg>
     <p class="text-lg font-medium">Групп пока нет</p>
     <p class="text-sm mt-1">Создайте первую группу чтецов слева</p>

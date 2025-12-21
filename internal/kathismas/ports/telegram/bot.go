@@ -56,11 +56,8 @@ func NewBot(
 }
 
 func (b *Bot) Start(ctx context.Context) error {
-	b.log.Info("Starting Telegram bot...")
-
 	u := tgbotapi.NewUpdate(0)
 	u.Timeout = 60
-
 	updates := b.api.GetUpdatesChan(u)
 	jobs := make(chan tgbotapi.Update, b.numWorkers)
 

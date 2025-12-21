@@ -113,12 +113,13 @@ func (r *ReaderGroupRepository) marshalToDB(group *domain.ReaderGroup) ReaderGro
 	readers := make([]PsalmReaderTGDB, 0, len(group.Readers))
 	for _, reader := range group.Readers {
 		readers = append(readers, PsalmReaderTGDB{
-			ID:         reader.ID,
-			Username:   reader.Username,
-			TelegramID: reader.TelegramID,
-			Phone:      reader.Phone,
-			CreatedAt:  reader.CreatedAt,
-			UpdatedAt:  reader.UpdatedAt,
+			ID:           reader.ID,
+			ReaderNumber: reader.ReaderNumber,
+			Username:     reader.Username,
+			TelegramID:   reader.TelegramID,
+			Phone:        reader.Phone,
+			CreatedAt:    reader.CreatedAt,
+			UpdatedAt:    reader.UpdatedAt,
 		})
 	}
 

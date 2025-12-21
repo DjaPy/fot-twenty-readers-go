@@ -1,20 +1,16 @@
-{{define "content"}}
+{{define "groups-content"}}
 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
     <!-- Left: Create Group Form -->
     <div class="lg:col-span-1">
         <div class="bg-white rounded-lg shadow p-6">
             <h2 class="text-lg font-semibold text-gray-900 mb-4">Создать группу чтецов</h2>
-
             <form hx-post="/groups"
                   hx-target="#groups-list"
                   hx-swap="beforeend"
                   hx-on::after-request="this.reset()"
                   class="space-y-4">
-
                 <div>
-                    <label for="name" class="block text-sm font-medium text-gray-700 mb-1">
-                        Название группы
-                    </label>
+                    <label for="name" class="block text-sm font-medium text-gray-700 mb-1">Название группы</label>
                     <input type="text"
                            id="name"
                            name="name"
@@ -22,11 +18,9 @@
                            placeholder="Храм Покрова"
                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500">
                 </div>
-
                 <div>
-                    <label for="start_offset" class="block text-sm font-medium text-gray-700 mb-1">
-                        Кафизма на 1 января (1-20)
-                    </label>
+                    <label for="start_offset"
+                           class="block text-sm font-medium text-gray-700 mb-1">Кафизма на 1 января (1-20)</label>
                     <input type="number"
                            id="start_offset"
                            name="start_offset"
@@ -37,7 +31,6 @@
                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500">
                     <p class="mt-1 text-xs text-gray-500">Какая кафизма будет у 1-го чтеца 1 января</p>
                 </div>
-
                 <button type="submit"
                         class="w-full bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition font-medium">
                     Создать группу
@@ -45,7 +38,6 @@
             </form>
         </div>
     </div>
-
     <!-- Right: Groups List -->
     <div class="lg:col-span-2">
         <div class="bg-white rounded-lg shadow">
@@ -54,11 +46,8 @@
                 <button hx-get="/groups/list"
                         hx-target="#groups-list"
                         hx-swap="innerHTML"
-                        class="text-blue-600 hover:text-blue-700 text-sm font-medium">
-                    🔄 Обновить
-                </button>
+                        class="text-blue-600 hover:text-blue-700 text-sm font-medium">🔄 Обновить</button>
             </div>
-
             <div id="groups-list"
                  hx-get="/groups/list"
                  hx-trigger="load"
@@ -66,9 +55,13 @@
                  class="divide-y divide-gray-200">
                 <!-- Groups will be loaded here -->
                 <div class="p-8 text-center text-gray-500">
-                    <svg class="animate-spin h-8 w-8 mx-auto mb-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <svg class="animate-spin h-8 w-8 mx-auto mb-2"
+                         xmlns="http://www.w3.org/2000/svg"
+                         fill="none"
+                         viewBox="0 0 24 24">
                         <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
+                        </path>
                     </svg>
                     Загрузка групп...
                 </div>
@@ -76,46 +69,51 @@
         </div>
     </div>
 </div>
-
 <!-- Modal for adding readers (hidden by default) -->
-<div id="reader-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+<div id="reader-modal"
+     class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
     <div class="bg-white rounded-lg p-6 max-w-md w-full mx-4">
         <h3 class="text-lg font-semibold mb-4">Добавить чтеца</h3>
         <form id="reader-form" class="space-y-4">
             <input type="hidden" id="reader-group-id" name="group_id">
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">Имя</label>
-                <input type="text" name="username" required
+                <input type="text"
+                       name="username"
+                       required
                        class="w-full px-3 py-2 border border-gray-300 rounded-md">
             </div>
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">Номер чтеца (1-20)</label>
-                <input type="number" name="reader_number" required min="1" max="20"
+                <input type="number"
+                       name="reader_number"
+                       required
+                       min="1"
+                       max="20"
                        class="w-full px-3 py-2 border border-gray-300 rounded-md">
             </div>
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">Telegram ID (опционально)</label>
-                <input type="number" name="telegram_id"
+                <input type="number"
+                       name="telegram_id"
                        class="w-full px-3 py-2 border border-gray-300 rounded-md">
             </div>
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">Телефон (опционально)</label>
-                <input type="tel" name="phone"
+                <input type="tel"
+                       name="phone"
                        class="w-full px-3 py-2 border border-gray-300 rounded-md">
             </div>
             <div class="flex space-x-2">
-                <button type="submit" class="flex-1 bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700">
-                    Добавить
-                </button>
-                <button type="button" onclick="closeReaderModal()"
-                        class="flex-1 bg-gray-200 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-300">
-                    Отмена
-                </button>
+                <button type="submit"
+                        class="flex-1 bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700">Добавить</button>
+                <button type="button"
+                        onclick="closeReaderModal()"
+                        class="flex-1 bg-gray-200 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-300">Отмена</button>
             </div>
         </form>
     </div>
 </div>
-
 <script>
     function openReaderModal(groupId) {
         document.getElementById('reader-group-id').value = groupId;

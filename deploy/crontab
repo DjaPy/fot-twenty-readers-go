@@ -1,0 +1,2 @@
+# Backup database daily at 2 AM
+0 2 * * * /app/backup -db /app/data/for-twenty-readers.db -backup-dir /app/backups -retention 30 >> /var/log/backup.log 2>&1

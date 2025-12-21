@@ -12,6 +12,13 @@ import (
 	"github.com/gofrs/uuid/v5"
 )
 
+const (
+	btnRegister = "📝 Регистрация"
+	btnKathisma = "📖 Моя кафизма"
+	btnCancel   = "❌ Отменить"
+	btnMenu     = "📋 Главное меню"
+)
+
 type MessageSender interface {
 	Send(c tgbotapi.Chattable) (tgbotapi.Message, error)
 	Request(c tgbotapi.Chattable) (*tgbotapi.APIResponse, error)
@@ -47,10 +54,43 @@ func NewHandlers(
 	}
 }
 
+func getMainMenuKeyboard() tgbotapi.ReplyKeyboardMarkup {
+	return tgbotapi.NewReplyKeyboard(
+		tgbotapi.NewKeyboardButtonRow(
+			tgbotapi.NewKeyboardButton(btnRegister),
+			tgbotapi.NewKeyboardButton(btnKathisma),
+		),
+	)
+}
+
+func getRegisteredUserKeyboard() tgbotapi.ReplyKeyboardMarkup {
+	return tgbotapi.NewReplyKeyboard(
+		tgbotapi.NewKeyboardButtonRow(
+			tgbotapi.NewKeyboardButton(btnKathisma),
+		),
+	)
+}
+
+func getUnregisteredUserKeyboard() tgbotapi.ReplyKeyboardMarkup {
+	return tgbotapi.NewReplyKeyboard(
+		tgbotapi.NewKeyboardButtonRow(
+			tgbotapi.NewKeyboardButton(btnRegister),
+		),
+	)
+}
+
+func getRegistrationKeyboard() tgbotapi.ReplyKeyboardMarkup {
+	return tgbotapi.NewReplyKeyboard(
+		tgbotapi.NewKeyboardButtonRow(
+			tgbotapi.NewKeyboardButton(btnCancel),
+		),
+	)
+}
+
 func (h *Handlers) HandleCommand(ctx context.Context, bot MessageSender, message *tgbotapi.Message) error {
 	switch message.Command() {
 	case "start":
-		return h.handleStart(bot, message)
+		return h.handleStart(ctx, bot, message)
 	case "register":
 		return h.handleRegister(ctx, bot, message)
 	case "kathisma":
@@ -64,26 +104,58 @@ func (h *Handlers) HandleCommand(ctx context.Context, bot MessageSender, message
 	}
 }
 
-func (h *Handlers) handleStart(bot MessageSender, message *tgbotapi.Message) error {
-	welcomeText := `Добро пожаловать в бот для чтецов Псалтири!
+func (h *Handlers) handleStart(ctx context.Context, bot MessageSender, message *tgbotapi.Message) error {
+	readerInfo, err := h.getReaderByTelegramIDHandler.Handle(ctx, &query.GetReaderByTelegramIDQuery{
+		TelegramID: message.From.ID,
+	})
 
-Доступные команды:
-/register - Зарегистрироваться в группе
-/kathisma - Узнать текущую кафизму
-/cancel - Отменить регистрацию`
+	if err == nil {
+		welcomeText := fmt.Sprintf(
+			"👋 Добро пожаловать, %s!\n\n"+
+				"📚 Группа: %s\n"+
+				"🔢 Ваш номер: %d\n\n"+
+				"Используйте кнопку \"Моя кафизма\" для просмотра текущей кафизмы.",
+			readerInfo.Username,
+			readerInfo.GroupName,
+			readerInfo.ReaderNumber,
+		)
+
+		msg := tgbotapi.NewMessage(message.Chat.ID, welcomeText)
+		msg.ReplyMarkup = getRegisteredUserKeyboard()
+		_, sendErr := bot.Send(msg)
+		if sendErr != nil {
+			return fmt.Errorf("failed to send registered user start message: %w", sendErr)
+		}
+		return nil
+	}
+
+	h.log.Info("user not registered", "telegram_id", message.From.ID)
+
+	welcomeText := "👋 Добро пожаловать в бот для чтецов Псалтири!\n\n" +
+		"Вы ещё не зарегистрированы.\n\n" +
+		"Нажмите кнопку \"Регистрация\" для начала."
 
 	msg := tgbotapi.NewMessage(message.Chat.ID, welcomeText)
-	_, err := bot.Send(msg)
-	return fmt.Errorf("failed to send start message: %w", err)
+	msg.ReplyMarkup = getUnregisteredUserKeyboard()
+	_, sendErr := bot.Send(msg)
+	if sendErr != nil {
+		return fmt.Errorf("failed to send unregistered user start message: %w", sendErr)
+	}
+	return nil
 }
 
 func (h *Handlers) handleRegister(ctx context.Context, bot MessageSender, message *tgbotapi.Message) error {
 	session := h.sessionManager.GetSession(message.From.ID)
 
 	if session.State != StateIdle {
-		msg := tgbotapi.NewMessage(message.Chat.ID, "Регистрация уже в процессе. Используйте /cancel для отмены.")
+		msg := tgbotapi.NewMessage(message.Chat.ID, "Регистрация уже в процессе. Используйте кнопку Отменить для отмены.")
+		msg.ReplyMarkup = getRegistrationKeyboard()
 		_, err := bot.Send(msg)
-		return fmt.Errorf("registration already in progress: %w", err)
+		if err != nil {
+			return fmt.Errorf("registration already in progress: %w", err)
+		}
+		return nil
+
 	}
 
 	readerInfo, err := h.getReaderByTelegramIDHandler.Handle(ctx, &query.GetReaderByTelegramIDQuery{
@@ -91,18 +163,26 @@ func (h *Handlers) handleRegister(ctx context.Context, bot MessageSender, messag
 	})
 
 	if err == nil {
-		responseText := fmt.Sprintf("Вы уже зарегистрированы!\n\nГруппа: %s\nВаш номер: %d\n\nИспользуйте /kathisma для просмотра текущей кафизмы.",
+		responseText := fmt.Sprintf("Вы уже зарегистрированы!\n\nГруппа: %s\nВаш номер: %d\n\nИспользуйте кнопку \"Моя кафизма\" для просмотра текущей кафизмы.",
 			readerInfo.GroupName, readerInfo.ReaderNumber)
 		msg := tgbotapi.NewMessage(message.Chat.ID, responseText)
+		msg.ReplyMarkup = getMainMenuKeyboard()
 		_, sendErr := bot.Send(msg)
-		return fmt.Errorf("failed to send registration confirmation: %w", sendErr)
+		if sendErr != nil {
+			return fmt.Errorf("failed to send registration confirmation: %w", sendErr)
+		}
+		return nil
 	}
 
 	h.sessionManager.UpdateState(message.From.ID, StateAwaitingName)
 
 	msg := tgbotapi.NewMessage(message.Chat.ID, "Пожалуйста, введите ваше имя:")
+	msg.ReplyMarkup = getRegistrationKeyboard()
 	_, err = bot.Send(msg)
-	return fmt.Errorf("failed to send name input prompt: %w", err)
+	if err != nil {
+		return fmt.Errorf("failed to send name input prompt: %w", err)
+	}
+	return nil
 }
 
 func (h *Handlers) handleKathisma(ctx context.Context, bot MessageSender, message *tgbotapi.Message) error {
@@ -112,9 +192,14 @@ func (h *Handlers) handleKathisma(ctx context.Context, bot MessageSender, messag
 
 	if err != nil {
 		h.log.Info("reader not found for telegram ID", "telegram_id", message.From.ID, "error", err)
-		msg := tgbotapi.NewMessage(message.Chat.ID, "Вы не зарегистрированы. Используйте /register для регистрации.")
+		msg := tgbotapi.NewMessage(message.Chat.ID, "Вы не зарегистрированы. Используйте кнопку \"Регистрация\" для регистрации.")
+		msg.ReplyMarkup = getMainMenuKeyboard()
 		_, sendErr := bot.Send(msg)
-		return fmt.Errorf("failed to send message: %w", sendErr)
+		if sendErr != nil {
+			return fmt.Errorf("failed to send message: %w", sendErr)
+		}
+		return nil
+
 	}
 
 	return h.handleGetKathismaForRegistered(ctx, bot, message, readerInfo.GroupID, readerInfo.ReaderNumber)
@@ -123,8 +208,12 @@ func (h *Handlers) handleKathisma(ctx context.Context, bot MessageSender, messag
 func (h *Handlers) handleCancel(bot MessageSender, message *tgbotapi.Message) error {
 	h.sessionManager.DeleteSession(message.From.ID)
 	msg := tgbotapi.NewMessage(message.Chat.ID, "Регистрация отменена.")
+	msg.ReplyMarkup = getMainMenuKeyboard()
 	_, err := bot.Send(msg)
-	return fmt.Errorf("failed to send cancel message: %w", err)
+	if err != nil {
+		return fmt.Errorf("failed to send cancel message: %w", err)
+	}
+	return nil
 }
 
 func (h *Handlers) HandleMessage(ctx context.Context, bot MessageSender, message *tgbotapi.Message) error {
@@ -132,15 +221,29 @@ func (h *Handlers) HandleMessage(ctx context.Context, bot MessageSender, message
 
 	switch session.State {
 	case StateAwaitingName:
+		if message.Text == btnCancel {
+			return h.handleCancel(bot, message)
+		}
 		return h.handleNameInput(ctx, bot, message)
 	case StateAwaitingGroup:
 		return h.handleGroupSelection(bot, message)
 	case StateAwaitingConfirm:
 		return h.handleConfirmation(bot, message)
 	default:
-		msg := tgbotapi.NewMessage(message.Chat.ID, "Используйте /start для начала работы с ботом.")
-		_, err := bot.Send(msg)
-		return fmt.Errorf("failed to send default message: %w", err)
+		switch message.Text {
+		case btnRegister:
+			return h.handleRegister(ctx, bot, message)
+		case btnKathisma:
+			return h.handleKathisma(ctx, bot, message)
+		default:
+			msg := tgbotapi.NewMessage(message.Chat.ID, "Используйте кнопки меню или /start для начала работы с ботом.")
+			msg.ReplyMarkup = getMainMenuKeyboard()
+			_, err := bot.Send(msg)
+			if err != nil {
+				return fmt.Errorf("failed to send default message: %w", err)
+			}
+			return nil
+		}
 	}
 }
 
@@ -157,7 +260,10 @@ func (h *Handlers) HandleCallbackQuery(ctx context.Context, bot MessageSender, c
 	default:
 		answerCallback := tgbotapi.NewCallback(callback.ID, "Неожиданный callback")
 		_, err := bot.Request(answerCallback)
-		return fmt.Errorf("failed to send callback answer: %w", err)
+		if err != nil {
+			return fmt.Errorf("failed to send callback answer: %w", err)
+		}
+		return nil
 	}
 }
 
@@ -166,7 +272,10 @@ func (h *Handlers) handleNameInput(ctx context.Context, bot MessageSender, messa
 	if name == "" {
 		msg := tgbotapi.NewMessage(message.Chat.ID, "Имя не может быть пустым. Пожалуйста, введите ваше имя:")
 		_, err := bot.Send(msg)
-		return fmt.Errorf("failed to send empty name message: %w", err)
+		if err != nil {
+			return fmt.Errorf("failed to send empty name message: %w", err)
+		}
+		return nil
 	}
 
 	session := h.sessionManager.GetSession(message.From.ID)
@@ -179,14 +288,20 @@ func (h *Handlers) handleNameInput(ctx context.Context, bot MessageSender, messa
 		h.log.Error("failed to list groups", "error", err)
 		msg := tgbotapi.NewMessage(message.Chat.ID, "Ошибка при загрузке списка групп. Попробуйте позже.")
 		_, err = bot.Send(msg)
-		return fmt.Errorf("failed to send error message after listing groups: %w", err)
+		if err != nil {
+			return fmt.Errorf("failed to send error message after listing groups: %w", err)
+		}
+		return nil
 	}
 
 	if len(groups) == 0 {
 		msg := tgbotapi.NewMessage(message.Chat.ID, "В системе пока нет групп. Обратитесь к администратору.")
 		h.sessionManager.DeleteSession(message.From.ID)
 		_, err = bot.Send(msg)
-		return fmt.Errorf("failed to send no groups message: %w", err)
+		if err != nil {
+			return fmt.Errorf("failed to send no groups message: %w", err)
+		}
+		return nil
 	}
 
 	keyboard := tgbotapi.NewInlineKeyboardMarkup()
@@ -203,7 +318,10 @@ func (h *Handlers) handleNameInput(ctx context.Context, bot MessageSender, messa
 	msg := tgbotapi.NewMessage(message.Chat.ID, "Выберите группу:")
 	msg.ReplyMarkup = keyboard
 	_, err = bot.Send(msg)
-	return fmt.Errorf("failed to send group selection message: %w", err)
+	if err != nil {
+		return fmt.Errorf("failed to send group selection message: %w", err)
+	}
+	return nil
 }
 
 func (h *Handlers) handleGroupCallback(ctx context.Context, bot MessageSender, callback *tgbotapi.CallbackQuery) error {
@@ -218,7 +336,10 @@ func (h *Handlers) handleGroupCallback(ctx context.Context, bot MessageSender, c
 	if err != nil {
 		answerCallback := tgbotapi.NewCallback(callback.ID, "Неверный ID группы")
 		_, sendErr := bot.Request(answerCallback)
-		return fmt.Errorf("failed to send callback answer: %w", sendErr)
+		if sendErr != nil {
+			return fmt.Errorf("failed to send callback answer: %w", sendErr)
+		}
+		return nil
 	}
 
 	group, err := h.getReaderGroupHandler.Handle(ctx, query.GetReaderGroup{ID: groupID})
@@ -233,7 +354,10 @@ func (h *Handlers) handleGroupCallback(ctx context.Context, bot MessageSender, c
 		errorMsg := fmt.Sprintf("Ошибка при получении группы: %v", err)
 		msg := tgbotapi.NewMessage(callback.Message.Chat.ID, errorMsg)
 		_, sendErr = bot.Send(msg)
-		return fmt.Errorf("failed to send error message: %w", sendErr)
+		if sendErr != nil {
+			return fmt.Errorf("failed to send error message: %w", sendErr)
+		}
+		return nil
 	}
 
 	availableNumbers := group.GetAvailableReaderNumbers()
@@ -249,7 +373,10 @@ func (h *Handlers) handleGroupCallback(ctx context.Context, bot MessageSender, c
 		msg := tgbotapi.NewMessage(callback.Message.Chat.ID, errorMsg)
 		h.sessionManager.DeleteSession(callback.From.ID)
 		_, sendErr = bot.Send(msg)
-		return fmt.Errorf("failed to send full group message: %w", sendErr)
+		if sendErr != nil {
+			return fmt.Errorf("failed to send full group message: %w", sendErr)
+		}
+		return nil
 	}
 
 	session := h.sessionManager.GetSession(callback.From.ID)
@@ -283,7 +410,10 @@ func (h *Handlers) handleGroupCallback(ctx context.Context, bot MessageSender, c
 		fmt.Sprintf("Группа: %s\n\nВыберите ваш номер чтеца:", group.Name))
 	msg.ReplyMarkup = keyboard
 	_, err = bot.Send(msg)
-	return fmt.Errorf("failed to send reader number selection: %w", err)
+	if err != nil {
+		return fmt.Errorf("failed to send reader number selection: %w", err)
+	}
+	return nil
 }
 
 func (h *Handlers) handleReaderNumberCallback(bot MessageSender, callback *tgbotapi.CallbackQuery) error {
@@ -299,7 +429,10 @@ func (h *Handlers) handleReaderNumberCallback(bot MessageSender, callback *tgbot
 	if err != nil || readerNumber < 1 || readerNumber > 20 {
 		answerCallback := tgbotapi.NewCallback(callback.ID, "Неверный номер чтеца")
 		_, sendErr := bot.Request(answerCallback)
-		return fmt.Errorf("failed to send callback answer: %w", sendErr)
+		if sendErr != nil {
+			return fmt.Errorf("failed to send callback answer: %w", sendErr)
+		}
+		return nil
 	}
 
 	session := h.sessionManager.GetSession(callback.From.ID)
@@ -326,19 +459,28 @@ func (h *Handlers) handleReaderNumberCallback(bot MessageSender, callback *tgbot
 	msg := tgbotapi.NewMessage(callback.Message.Chat.ID, confirmText)
 	msg.ReplyMarkup = keyboard
 	_, err = bot.Send(msg)
-	return fmt.Errorf("failed to send confirmation prompt: %w", err)
+	if err != nil {
+		return fmt.Errorf("failed to send confirmation prompt: %w", err)
+	}
+	return nil
 }
 
 func (h *Handlers) handleGroupSelection(bot MessageSender, message *tgbotapi.Message) error {
 	msg := tgbotapi.NewMessage(message.Chat.ID, "Пожалуйста, выберите группу из списка выше.")
 	_, err := bot.Send(msg)
-	return fmt.Errorf("failed to send group selection prompt: %w", err)
+	if err != nil {
+		return fmt.Errorf("failed to send group selection prompt: %w", err)
+	}
+	return nil
 }
 
 func (h *Handlers) handleConfirmation(bot MessageSender, message *tgbotapi.Message) error {
 	msg := tgbotapi.NewMessage(message.Chat.ID, "Пожалуйста, используйте кнопки для подтверждения.")
 	_, err := bot.Send(msg)
-	return fmt.Errorf("failed to send confirmation prompt: %w", err)
+	if err != nil {
+		return fmt.Errorf("failed to send confirmation prompt: %w", err)
+	}
+	return nil
 }
 
 func (h *Handlers) handleConfirmCallback(ctx context.Context, bot MessageSender, callback *tgbotapi.CallbackQuery) error {
@@ -400,7 +542,10 @@ func (h *Handlers) handleConfirmCallback(ctx context.Context, bot MessageSender,
 		session.ReaderNumber, session.GroupName)
 	msg := tgbotapi.NewMessage(callback.Message.Chat.ID, successMsg)
 	_, sendErr := bot.Send(msg)
-	return fmt.Errorf("failed to send success message: %w", sendErr)
+	if sendErr != nil {
+		return fmt.Errorf("failed to send success message: %w", sendErr)
+	}
+	return nil
 }
 
 func (h *Handlers) handleGetKathismaForRegistered(
@@ -419,7 +564,10 @@ func (h *Handlers) handleGetKathismaForRegistered(
 		h.log.Error("failed to get current kathisma", "error", err)
 		msg := tgbotapi.NewMessage(message.Chat.ID, fmt.Sprintf("Ошибка при получении кафизмы: %v", err))
 		_, sendErr := bot.Send(msg)
-		return fmt.Errorf("failed to send kathisma error message: %w", sendErr)
+		if sendErr != nil {
+			return fmt.Errorf("failed to send kathisma error message: %w", sendErr)
+		}
+		return nil
 	}
 
 	var responseText string
@@ -434,5 +582,8 @@ func (h *Handlers) handleGetKathismaForRegistered(
 
 	msg := tgbotapi.NewMessage(message.Chat.ID, responseText)
 	_, err = bot.Send(msg)
-	return fmt.Errorf("failed to send kathisma message: %w", err)
+	if err != nil {
+		return fmt.Errorf("failed to send kathisma message: %w", err)
+	}
+	return nil
 }

@@ -45,7 +45,7 @@ func (sm *SessionManager) UpdateState(userID int64, state RegistrationState) {
 	session, exists := sm.sessions[userID]
 	if !exists {
 		session = UserSession{}
-		sm.sessions[userID] = session
 	}
 	session.State = state
+	sm.sessions[userID] = session // Сохраняем обратно в мапу!
 }

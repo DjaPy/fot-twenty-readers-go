@@ -544,3 +544,23 @@ fabric.properties
 
 for-twenty-readers
 for-twenty-readers.db
+# Docker & Environment
+.env
+deploy/.env
+deploy/nginx/logs/*
+!deploy/nginx/logs/.gitkeep
+deploy/nginx/ssl/*.pem
+deploy/nginx/ssl/*.key
+!deploy/nginx/ssl/.gitkeep
+deploy/nginx/auth/.htpasswd
+data/*.db
+data/*.db-shm
+data/*.db-wal
+!data/.gitkeep
+
+# Test coverage
+coverage.out
+
+# Backups
+backups/*.db
+!backups/.gitkeep

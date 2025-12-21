@@ -1,0 +1,93 @@
+
+version: '3.8'
+
+services:
+  init:
+    image: alpine:latest
+    container_name: fot-twenty-readers-init
+    volumes:
+      - ../data:/data
+      - ../backups:/backups
+      - ./nginx/logs:/nginx-logs
+      - ./nginx/ssl:/nginx-ssl
+    command: >
+      sh -c "
+        echo 'Initializing directories...' &&
+        mkdir -p /data /backups /nginx/logs /nginx/ssl /nginx/auth &&
+        chown -R 1000:1000 /data /backups &&
+        chmod 750 /data /backups &&
+        chmod 750 /nginx/logs /nginx/ssl /nginx/auth &&
+        echo 'Directories initialized successfully'
+      "
+
+  app:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+    container_name: fot-twenty-readers-app
+    restart: unless-stopped
+    volumes:
+      - ../data:/app/data
+    environment:
+      - DEBUG=${DEBUG:-false}
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
+      - TELEGRAM_NUM_WORKERS=${TELEGRAM_NUM_WORKERS:-10}
+      - SYSTEM_BASE_URL=${SYSTEM_BASE_URL:-http://localhost}
+    networks:
+      - app-network
+    depends_on:
+      init:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8080/ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  nginx:
+    image: nginx:alpine
+    container_name: fot-twenty-readers-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+      - ./nginx/html:/usr/share/nginx/html:ro
+      - ./nginx/logs:/var/log/nginx
+      - ./nginx/auth/.htpasswd:/etc/nginx/auth/.htpasswd:ro
+    networks:
+      - app-network
+    depends_on:
+      init:
+        condition: service_completed_successfully
+      app:
+        condition: service_started
+
+  backup:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.backup
+    container_name: fot-twenty-readers-backup
+    restart: unless-stopped
+    volumes:
+      - ../data:/app/data:ro
+      - ../backups:/app/backups
+      - ./crontab:/app/crontab:ro
+    environment:
+      - TZ=${TZ:-UTC}
+    networks:
+      - app-network
+    depends_on:
+      init:
+        condition: service_completed_successfully
+
+networks:
+  app-network:
+    driver: bridge
+
+volumes:
+  db-data:
