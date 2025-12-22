@@ -26,11 +26,14 @@ func (a *Application) Close() {
 }
 
 type Commands struct {
-	CreateCalendarOfReader   command.CreateCalendarOfReaderHandler
-	CreateReaderGroup        command.CreateReaderGroupHandler
-	AddReaderToGroup         command.AddReaderToGroupHandler
-	GenerateCalendarForGroup command.GenerateCalendarForGroupHandler
-	RemoveReaderFromGroup    command.RemoveReaderFromGroupHandler
+	CreateCalendarOfReader     command.CreateCalendarOfReaderHandler
+	CreateReaderGroup          command.CreateReaderGroupHandler
+	AddReaderToGroup           command.AddReaderToGroupHandler
+	GenerateCalendarForGroup   command.GenerateCalendarForGroupHandler
+	RemoveReaderFromGroup      command.RemoveReaderFromGroupHandler
+	DeleteReaderGroup          command.DeleteReaderGroupHandler
+	UpdateReaderGroup          command.UpdateReaderGroupHandler
+	RegenerateCalendarForGroup command.RegenerateCalendarForGroupHandler
 }
 
 type Queries struct {

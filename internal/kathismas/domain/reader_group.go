@@ -126,6 +126,23 @@ func (rg *ReaderGroup) AddCalendar(calendar CalendarOfReader) error {
 	return nil
 }
 
+func (rg *ReaderGroup) RemoveCalendarsByYear(year int) int {
+	removed := 0
+	newCalendars := make([]CalendarOfReader, 0, len(rg.Calendars))
+	for _, cal := range rg.Calendars {
+		if cal.Year != year {
+			newCalendars = append(newCalendars, cal)
+		} else {
+			removed++
+		}
+	}
+	if removed > 0 {
+		rg.Calendars = newCalendars
+		rg.UpdatedAt = time.Now()
+	}
+	return removed
+}
+
 func (rg *ReaderGroup) GetLatestCalendar() (*CalendarOfReader, error) {
 	if len(rg.Calendars) == 0 {
 		return nil, fmt.Errorf("no calendars found in group")

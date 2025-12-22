@@ -42,6 +42,11 @@
             </form>
             <a href="/groups/{{.ID}}"
                class="px-3 py-1 text-sm bg-gray-100 text-gray-700 rounded hover:bg-gray-200 transition">Подробнее</a>
+            <button hx-delete="/groups/{{.ID}}"
+                    hx-confirm="Вы уверены, что хотите удалить группу '{{.Name}}'?"
+                    hx-target="#group-{{.ID}}"
+                    hx-swap="outerHTML swap:0.5s"
+                    class="px-3 py-1 text-sm text-red-600 hover:bg-red-50 rounded transition">🗑️</button>
         </div>
     </div>
 </div>

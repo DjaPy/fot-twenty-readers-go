@@ -34,11 +34,37 @@ lint:
 test:
     go test -v ./...
 
+test-unit:
+    go test -v -race ./internal/...
+
 test-coverage:
     @echo "=== Run tests ==="
     go test -coverprofile=coverage.out ./...
     go tool cover -func=coverage.out
     @echo "=== Test success ==="
+
+test-e2e:
+    @echo "=== Run E2E tests ==="
+    E2E_BASE_URL=http://localhost:8080 E2E_USERNAME=admin E2E_PASSWORD=admin go test -v ./tests/e2e/...
+    @echo "=== E2E tests success ==="
+
+test-e2e-env-start:
+    @echo "=== Starting E2E test environment ==="
+    cd deploy && docker-compose -f docker-compose.test.yml up -d
+    @echo "Waiting for services to be healthy..."
+    sleep 5
+    @echo "Test environment ready at http://localhost:8080"
+    @echo "Username: admin, Password: admin"
+
+test-e2e-env-stop:
+    @echo "=== Stopping E2E test environment ==="
+    cd deploy && docker-compose -f docker-compose.test.yml down -v
+    @echo "=== Test environment stopped ==="
+
+install-playwright:
+    @echo "=== Installing Playwright browsers ==="
+    go run github.com/playwright-community/playwright-go/cmd/playwright@latest install --with-deps chromium
+    @echo "=== Playwright installed ==="
 
 generate-mocks:
     @echo "=== Generate mocks ==="

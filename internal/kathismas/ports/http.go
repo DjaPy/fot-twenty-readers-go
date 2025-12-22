@@ -1,6 +1,7 @@
 package ports
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"html/template"
@@ -74,7 +75,7 @@ func (s *Server) Run(ctx context.Context, port int) {
 
 func (s *Server) router() *chi.Mux {
 	router := chi.NewRouter()
-	router.Use(rest.AppInfo("for-twenty-readers", "djapy", s.Version), rest.Ping)
+	router.Use(rest.AppInfo("for-twenty-readers", "DjaPy", s.Version), rest.Ping)
 
 	router.Get("/", s.groupsPage)
 
@@ -85,9 +86,12 @@ func (s *Server) router() *chi.Mux {
 	router.Get("/groups/list", s.listGroupsPartial)
 	router.Post("/groups", s.createGroup)
 	router.Get("/groups/{id}", s.getGroupPage)
+	router.Put("/groups/{id}", s.updateGroup)
+	router.Delete("/groups/{id}", s.deleteGroup)
 	router.Post("/groups/{id}/readers", s.addReaderToGroup)
 	router.Delete("/groups/{id}/readers/{readerId}", s.removeReaderFromGroup)
 	router.Post("/groups/{id}/generate", s.generateCalendarForGroup)
+	router.Post("/groups/{id}/regenerate", s.regenerateCalendarForGroup)
 	router.Get("/groups/{id}/current-kathisma", s.getCurrentKathisma)
 
 	return router
@@ -289,7 +293,7 @@ func (s *Server) removeReaderFromGroup(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, fmt.Sprintf("/groups/%s", idStr), http.StatusSeeOther)
 }
 
-func (s *Server) generateCalendarForGroup(w http.ResponseWriter, r *http.Request) {
+func (s *Server) handleCalendarGeneration(w http.ResponseWriter, r *http.Request, isRegenerate bool) {
 	idStr := chi.URLParam(r, "id")
 	groupID, err := uuid.FromString(idStr)
 	if err != nil {
@@ -315,22 +319,34 @@ func (s *Server) generateCalendarForGroup(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	cmd := command.GenerateCalendarForGroup{
-		GroupID: groupID,
-		Year:    year,
+	var buffer *bytes.Buffer
+	action := "generation"
+	if isRegenerate {
+		action = "regeneration"
+		cmd := command.RegenerateCalendarForGroup{
+			GroupID: groupID,
+			Year:    year,
+		}
+		slog.Info("starting calendar "+action, "group_id", groupID, "year", year)
+		startTime := time.Now()
+		buffer, err = s.App.Commands.RegenerateCalendarForGroup.Handle(r.Context(), cmd)
+		duration := time.Since(startTime)
+		slog.Info("calendar "+action+" completed", "duration", duration)
+	} else {
+		cmd := command.GenerateCalendarForGroup{
+			GroupID: groupID,
+			Year:    year,
+		}
+		slog.Info("starting calendar "+action, "group_id", groupID, "year", year)
+		startTime := time.Now()
+		buffer, err = s.App.Commands.GenerateCalendarForGroup.Handle(r.Context(), cmd)
+		duration := time.Since(startTime)
+		slog.Info("calendar "+action+" completed", "duration", duration)
 	}
 
-	slog.Info("starting calendar generation", "group_id", groupID, "year", year)
-	startTime := time.Now()
-
-	buffer, errGC := s.App.Commands.GenerateCalendarForGroup.Handle(r.Context(), cmd)
-
-	duration := time.Since(startTime)
-	slog.Info("calendar generation completed", "duration", duration)
-
-	if errGC != nil {
-		slog.Error("failed to generate calendar", "error", errGC)
-		http.Error(w, "failed to generate calendar", http.StatusInternalServerError)
+	if err != nil {
+		slog.Error("failed to "+action[0:len(action)-2]+" calendar", "error", err)
+		http.Error(w, "failed to "+action[0:len(action)-2]+" calendar", http.StatusInternalServerError)
 		return
 	}
 	if year == 0 {
@@ -344,6 +360,86 @@ func (s *Server) generateCalendarForGroup(w http.ResponseWriter, r *http.Request
 	if _, err := w.Write(buffer.Bytes()); err != nil {
 		slog.Error("failed to write response", "error", err)
 	}
+}
+
+func (s *Server) generateCalendarForGroup(w http.ResponseWriter, r *http.Request) {
+	s.handleCalendarGeneration(w, r, false)
+}
+
+func (s *Server) updateGroup(w http.ResponseWriter, r *http.Request) {
+	idStr := chi.URLParam(r, "id")
+	groupID, err := uuid.FromString(idStr)
+	if err != nil {
+		http.Error(w, "invalid group id", http.StatusBadRequest)
+		return
+	}
+
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	name := r.FormValue("name")
+	startOffsetStr := r.FormValue("start_offset")
+
+	var namePtr *string
+	var startOffsetPtr *int
+
+	if name != "" {
+		namePtr = &name
+	}
+
+	if startOffsetStr != "" {
+		startOffset := atoi(startOffsetStr)
+		startOffsetPtr = &startOffset
+	}
+
+	cmd := command.UpdateReaderGroup{
+		GroupID:     groupID,
+		Name:        namePtr,
+		StartOffset: startOffsetPtr,
+	}
+
+	if err := s.App.Commands.UpdateReaderGroup.Handle(r.Context(), cmd); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	if r.Header.Get("HX-Request") == "true" {
+		http.Redirect(w, r, fmt.Sprintf("/groups/%s", idStr), http.StatusSeeOther)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+}
+
+func (s *Server) deleteGroup(w http.ResponseWriter, r *http.Request) {
+	idStr := chi.URLParam(r, "id")
+	groupID, err := uuid.FromString(idStr)
+	if err != nil {
+		http.Error(w, "invalid group id", http.StatusBadRequest)
+		return
+	}
+
+	cmd := command.DeleteReaderGroup{
+		GroupID: groupID,
+	}
+
+	if err := s.App.Commands.DeleteReaderGroup.Handle(r.Context(), cmd); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	if r.Header.Get("HX-Request") == "true" {
+		w.WriteHeader(http.StatusOK)
+		return
+	}
+
+	http.Redirect(w, r, "/groups", http.StatusSeeOther)
+}
+
+func (s *Server) regenerateCalendarForGroup(w http.ResponseWriter, r *http.Request) {
+	s.handleCalendarGeneration(w, r, true)
 }
 
 func sanitizeFilename(name string) string {

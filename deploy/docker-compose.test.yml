@@ -1,0 +1,73 @@
+services:
+  init-test:
+    image: alpine:latest
+    container_name: fot-twenty-readers-init-test
+    volumes:
+      - test-data:/data
+      - ./nginx/logs:/nginx/logs
+      - ./nginx/ssl:/nginx/ssl
+      - ./nginx/auth:/nginx/auth
+    command: >
+      sh -c "
+        echo 'Initializing test directories...' &&
+        apk add --no-cache apache2-utils &&
+        mkdir -p /data /nginx/logs /nginx/ssl /nginx/auth &&
+        chmod 750 /data &&
+        chmod 755 /nginx/logs /nginx/ssl /nginx/auth &&
+        htpasswd -bc /nginx/auth/.htpasswd admin admin &&
+        chmod 644 /nginx/auth/.htpasswd &&
+        echo 'Test directories initialized successfully'
+      "
+
+  app:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile
+    container_name: fot-twenty-readers-app-test
+    restart: unless-stopped
+    volumes:
+      - test-data:/app/data
+    environment:
+      - DEBUG=false
+      - TELEGRAM_BOT_TOKEN=test_token
+      - TELEGRAM_NUM_WORKERS=1
+      - SYSTEM_BASE_URL=http://localhost:8080
+    networks:
+      - test-network
+    depends_on:
+      init-test:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8080/ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  nginx-test:
+    image: nginx:alpine
+    container_name: fot-twenty-readers-nginx-test
+    restart: unless-stopped
+    ports:
+      - "8080:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+      - ./nginx/html:/usr/share/nginx/html:ro
+      - ./nginx/logs:/var/log/nginx
+      - ./nginx/auth:/etc/nginx/auth:ro
+    networks:
+      - test-network
+    depends_on:
+      init-test:
+        condition: service_completed_successfully
+      app:
+        condition: service_healthy
+
+networks:
+  test-network:
+    driver: bridge
+
+volumes:
+  test-data:
