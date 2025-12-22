@@ -8,15 +8,23 @@ services:
     volumes:
       - ../data:/data
       - ../backups:/backups
-      - ./nginx/logs:/nginx-logs
-      - ./nginx/ssl:/nginx-ssl
+      - ./nginx/logs:/nginx/logs
+      - ./nginx/ssl:/nginx/ssl
+      - ./nginx/auth:/nginx/auth
     command: >
       sh -c "
         echo 'Initializing directories...' &&
         mkdir -p /data /backups /nginx/logs /nginx/ssl /nginx/auth &&
-        chown -R 1000:1000 /data /backups &&
-        chmod 750 /data /backups &&
-        chmod 750 /nginx/logs /nginx/ssl /nginx/auth &&
+        if [ ! -f /data/.initialized ]; then
+          echo 'First run - setting up data directories...' &&
+          chown -R 1000:1000 /data /backups &&
+          chmod 750 /data /backups &&
+          touch /data/.initialized;
+        else
+          echo 'Data directories already initialized, skipping...';
+        fi &&
+        echo 'Setting nginx directories permissions...' &&
+        chmod 755 /nginx/logs /nginx/ssl /nginx/auth &&
         echo 'Directories initialized successfully'
       "
 
