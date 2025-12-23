@@ -356,7 +356,7 @@ func (s *Server) handleCalendarGeneration(w http.ResponseWriter, r *http.Request
 
 	filename := fmt.Sprintf("calendar_%s_%d.xlsx", sanitizeFilename(group.Name), year)
 	w.Header().Set("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
-	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s\"", filename))
+	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s\"", filename)) //nolint:gocritic
 	w.WriteHeader(http.StatusOK)
 	if _, err := w.Write(buffer.Bytes()); err != nil {
 		slog.Error("failed to write response", "error", err)

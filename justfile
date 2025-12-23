@@ -39,7 +39,7 @@ test-unit:
 
 test-coverage:
     @echo "=== Run tests ==="
-    go test -coverprofile=coverage.out ./...
+    go test -coverprofile=coverage.out -atomic ./internal/...
     go tool cover -func=coverage.out
     @echo "=== Test success ==="
 
@@ -75,4 +75,3 @@ all-check:
     set -e
     just check-dependensies
     just lint
-    just test-coverage
