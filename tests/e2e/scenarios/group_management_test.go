@@ -26,16 +26,7 @@ func TestDeleteGroup(t *testing.T) {
 	require.NoError(t, err)
 
 	groupName := "Test Group To Delete"
-	err = groupsPage.FillGroupName(groupName)
-	require.NoError(t, err)
-
-	err = groupsPage.FillStartOffset("5")
-	require.NoError(t, err)
-
-	err = groupsPage.SubmitCreateGroup()
-	require.NoError(t, err)
-
-	err = groupsPage.WaitForLoad()
+	err = groupsPage.CreateGroup(groupName, "5")
 	require.NoError(t, err)
 
 	exists, err := groupsPage.GroupExists(groupName)
@@ -72,16 +63,7 @@ func TestEditGroup(t *testing.T) {
 	require.NoError(t, err)
 
 	originalName := "Test Group Original"
-	err = groupsPage.FillGroupName(originalName)
-	require.NoError(t, err)
-
-	err = groupsPage.FillStartOffset("3")
-	require.NoError(t, err)
-
-	err = groupsPage.SubmitCreateGroup()
-	require.NoError(t, err)
-
-	err = groupsPage.WaitForLoad()
+	err = groupsPage.CreateGroup(originalName, "3")
 	require.NoError(t, err)
 
 	err = groupsPage.ClickGroupDetails(originalName)
@@ -126,16 +108,7 @@ func TestRegenerateCalendar(t *testing.T) {
 	require.NoError(t, err)
 
 	groupName := "Test Group For Regeneration"
-	err = groupsPage.FillGroupName(groupName)
-	require.NoError(t, err)
-
-	err = groupsPage.FillStartOffset("1")
-	require.NoError(t, err)
-
-	err = groupsPage.SubmitCreateGroup()
-	require.NoError(t, err)
-
-	err = groupsPage.WaitForLoad()
+	err = groupsPage.CreateGroup(groupName, "1")
 	require.NoError(t, err)
 
 	err = groupsPage.ClickGroupDetails(groupName)

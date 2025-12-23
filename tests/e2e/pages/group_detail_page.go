@@ -30,7 +30,7 @@ func (p *GroupDetailPage) WaitForLoad() error {
 }
 
 func (p *GroupDetailPage) GetGroupName() (string, error) {
-	return p.page.TextContent("h1")
+	return p.page.TextContent("main h1")
 }
 
 func (p *GroupDetailPage) AddReader(username, telegramID, phone string) error {
@@ -82,20 +82,18 @@ func (p *GroupDetailPage) DeleteReader(username string) error {
 }
 
 func (p *GroupDetailPage) GenerateCalendar(year string) error {
-	if err := p.page.Fill("input[name='year']", year); err != nil {
-		return fmt.Errorf("fill year: %w", err)
-	}
+	generateButton := p.page.Locator("button:has-text('Сгенерировать календарь')")
 
-	if err := p.page.Click("button:has-text('Сгенерировать календарь')"); err != nil {
+	if err := generateButton.Click(); err != nil {
 		return fmt.Errorf("click generate: %w", err)
 	}
 
-	p.page.WaitForTimeout(1000)
+	p.page.WaitForTimeout(2000)
 	return nil
 }
 
 func (p *GroupDetailPage) GetCurrentKathisma(readerNumber string) (string, error) {
-	if err := p.page.Fill("input[name='reader_number']", readerNumber); err != nil {
+	if err := p.page.Fill("#reader-number", readerNumber); err != nil {
 		return "", fmt.Errorf("fill reader_number: %w", err)
 	}
 
@@ -117,7 +115,13 @@ func (p *GroupDetailPage) EditGroup(name, startOffset string) error {
 		return fmt.Errorf("click edit button: %w", err)
 	}
 
-	p.page.WaitForTimeout(300)
+	editForm := p.page.Locator("#edit-group-form")
+	if err := editForm.WaitFor(playwright.LocatorWaitForOptions{
+		State:   playwright.WaitForSelectorStateVisible,
+		Timeout: playwright.Float(3000),
+	}); err != nil {
+		return fmt.Errorf("wait for edit form: %w", err)
+	}
 
 	if err := p.page.Fill("input#edit-name", name); err != nil {
 		return fmt.Errorf("fill name: %w", err)
@@ -131,7 +135,7 @@ func (p *GroupDetailPage) EditGroup(name, startOffset string) error {
 		return fmt.Errorf("click save: %w", err)
 	}
 
-	p.page.WaitForTimeout(500)
+	p.page.WaitForTimeout(1000)
 	return nil
 }
 
@@ -140,22 +144,16 @@ func (p *GroupDetailPage) GetStartOffset() (string, error) {
 }
 
 func (p *GroupDetailPage) RegenerateCalendar(year string) error {
-	regenerateForm := p.page.Locator("form[action*='/regenerate']")
-
 	p.page.Once("dialog", func(dialog playwright.Dialog) {
 		_ = dialog.Accept()
 	})
 
-	yearInput := regenerateForm.Locator("input[name='year']")
-	if err := yearInput.Fill(year); err != nil {
-		return fmt.Errorf("fill year: %w", err)
-	}
+	regenerateButton := p.page.Locator("button:has-text('Перегенерировать')")
 
-	submitButton := regenerateForm.Locator("button[type='submit']")
-	if err := submitButton.Click(); err != nil {
+	if err := regenerateButton.Click(); err != nil {
 		return fmt.Errorf("click regenerate: %w", err)
 	}
 
-	p.page.WaitForTimeout(1000)
+	p.page.WaitForTimeout(2000)
 	return nil
 }

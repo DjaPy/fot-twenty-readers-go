@@ -8,6 +8,7 @@ import (
 	"log/slog"
 	"net/http"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -355,7 +356,7 @@ func (s *Server) handleCalendarGeneration(w http.ResponseWriter, r *http.Request
 
 	filename := fmt.Sprintf("calendar_%s_%d.xlsx", sanitizeFilename(group.Name), year)
 	w.Header().Set("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
-	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=\"%q\"", filename))
+	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=\"%s\"", filename))
 	w.WriteHeader(http.StatusOK)
 	if _, err := w.Write(buffer.Bytes()); err != nil {
 		slog.Error("failed to write response", "error", err)
@@ -443,14 +444,23 @@ func (s *Server) regenerateCalendarForGroup(w http.ResponseWriter, r *http.Reque
 }
 
 func sanitizeFilename(name string) string {
-	result := ""
-	for _, r := range name {
-		if (r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z') || (r >= '0' && r <= '9') || r == '_' || r == '-' {
-			result += string(r)
-		} else if r == ' ' {
-			result += "_"
-		}
+	// Заменяем пробелы на подчёркивания
+	result := strings.ReplaceAll(name, " ", "_")
+
+	// Удаляем символы, которые недопустимы в именах файлов
+	invalidChars := []string{"/", "\\", ":", "*", "?", "\"", "<", ">", "|"}
+	for _, char := range invalidChars {
+		result = strings.ReplaceAll(result, char, "")
 	}
+
+	// Удаляем множественные подчёркивания подряд
+	for strings.Contains(result, "__") {
+		result = strings.ReplaceAll(result, "__", "_")
+	}
+
+	// Убираем подчёркивания в начале и конце
+	result = strings.Trim(result, "_")
+
 	if result == "" {
 		return "calendar"
 	}

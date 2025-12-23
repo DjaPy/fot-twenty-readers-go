@@ -81,7 +81,7 @@ func addHeaderOfMonthToWs(xls *excelize.File, sheetName string) error {
 
 func addColumnWithNumberDayToWs(xls *excelize.File, sheetName string) error {
 	style, _ := xls.NewStyle(&excelize.Style{
-		Alignment: &excelize.Alignment{Horizontal: "center", Vertical: "center", WrapText: true},
+		Alignment: &excelize.Alignment{Horizontal: "left", Vertical: "center", WrapText: true},
 		Font:      &excelize.Font{Family: FontTrebuchet, Size: 12},
 	})
 	var errs []error
@@ -128,6 +128,17 @@ func CreateCalendarForReaderToXLS(
 		Alignment: &excelize.Alignment{Horizontal: "center", Vertical: "center", WrapText: true},
 		Font:      &excelize.Font{Family: FontTrebuchet, Size: 14, Color: "000000"},
 	})
+
+	pinkStyle, _ := xls.NewStyle(&excelize.Style{
+		Alignment: &excelize.Alignment{Horizontal: "center", Vertical: "center", WrapText: true},
+		Font:      &excelize.Font{Family: FontTrebuchet, Size: 14, Color: "000000"},
+		Fill:      excelize.Fill{Type: "pattern", Pattern: 1, Color: []string{"FF8080"}},
+		Border: []excelize.Border{
+			{Type: "top", Color: "000000", Style: 1},
+			{Type: "bottom", Color: "000000", Style: 1},
+		},
+	})
+
 	cellStep := 1
 	frameMonth := map[int]string{
 		1: "B", 2: "C", 3: "D", 4: "E", 5: "F", 6: "G", 7: "H", 8: "I", 9: "J", 10: "K", 11: "L", 12: "M",
@@ -160,16 +171,20 @@ func CreateCalendarForReaderToXLS(
 			targetDate := time.Date(year, time.Month(month), day, 0, 0, 0, 0, time.UTC)
 			dayNow := targetDate.YearDay()
 
+			var cellStyle int
 			if keyDay, ok := allKathisma[dayNow]; !ok {
 				keyDayStr = ""
+				cellStyle = pinkStyle
 			} else {
 				keyDayStr = strconv.Itoa(keyDay)
+				cellStyle = style
 			}
+
 			err1 := xls.SetCellValue(sheetName, cellName, keyDayStr)
 			if err1 != nil {
 				errs = append(errs, err1)
 			}
-			err2 := xls.SetCellStyle(sheetName, cellName, cellName, style)
+			err2 := xls.SetCellStyle(sheetName, cellName, cellName, cellStyle)
 			if err2 != nil {
 				errs = append(errs, err2)
 			}

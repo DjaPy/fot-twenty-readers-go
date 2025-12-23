@@ -90,22 +90,27 @@ func (p *GroupsPage) ClickGroupDetails(groupName string) error {
 }
 
 func (p *GroupsPage) DeleteGroup(groupName string) error {
+	groupCard := p.page.Locator(".p-4").Filter(playwright.LocatorFilterOptions{
+		HasText: groupName,
+	}).First()
+
 	p.page.On("dialog", func(dialog playwright.Dialog) {
-		dialog.Accept()
+		_ = dialog.Accept()
 	})
 
-	deleteButton := p.page.Locator(fmt.Sprintf("div:has(h3:text('%s')) button:has-text('🗑️')", groupName)).First()
+	deleteButton := groupCard.Locator("button:has-text('🗑️')")
 
 	if err := deleteButton.Click(); err != nil {
 		return fmt.Errorf("click delete: %w", err)
 	}
 
-	p.page.WaitForTimeout(1000)
+	p.page.WaitForTimeout(1500)
+
 	return nil
 }
 
 func (p *GroupsPage) GroupExists(groupName string) (bool, error) {
-	locator := p.page.Locator(fmt.Sprintf("text=%s", groupName))
+	locator := p.page.Locator(fmt.Sprintf("#groups-list h3:has-text('%s')", groupName))
 	count, err := locator.Count()
 	if err != nil {
 		return false, err
