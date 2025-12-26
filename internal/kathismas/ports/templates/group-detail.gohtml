@@ -22,23 +22,35 @@
                 </div>
                 <p class="mt-2 text-xs text-gray-400">Создана: {{.CreatedAt}} | Обновлена: {{.UpdatedAt}}</p>
             </div>
-            <div class="flex space-x-2">
+            <div class="flex items-center space-x-2">
                 <button onclick="toggleEditForm()"
                         class="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition">
                     ✏️ Редактировать
                 </button>
-                <form action="/groups/{{.ID}}/generate" method="post" class="inline">
-                    <input type="hidden" name="year" value="2025">
+                <form action="/groups/{{.ID}}/generate"
+                      method="post"
+                      class="inline-flex items-center gap-2">
+                    <input type="number"
+                           name="year"
+                           value="{{.CurrentYear}}"
+                           min="2000"
+                           class="w-20 px-2 py-2 text-sm border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500">
                     <button type="submit"
-                            class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition">
-                        📥 Сгенерировать календарь 2025
+                            class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition whitespace-nowrap">
+                        📥 Календарь
                     </button>
                 </form>
-                <form action="/groups/{{.ID}}/regenerate" method="post" class="inline">
-                    <input type="hidden" name="year" value="2025">
+                <form action="/groups/{{.ID}}/regenerate"
+                      method="post"
+                      class="inline-flex items-center gap-2">
+                    <input type="number"
+                           name="year"
+                           value="{{.CurrentYear}}"
+                           min="2000"
+                           class="w-20 px-2 py-2 text-sm border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500">
                     <button type="submit"
-                            hx-confirm="Вы уверены, что хотите перегенерировать календарь? Это удалит существующий календарь за {{.Year}} год."
-                            class="px-4 py-2 bg-yellow-600 text-white rounded-md hover:bg-yellow-700 transition">
+                            hx-confirm="Вы уверены, что хотите перегенерировать календарь?"
+                            class="px-4 py-2 bg-yellow-600 text-white rounded-md hover:bg-yellow-700 transition whitespace-nowrap">
                         🔄 Перегенерировать
                     </button>
                 </form>

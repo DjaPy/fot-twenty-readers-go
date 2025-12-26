@@ -205,10 +205,12 @@ func (s *Server) getGroupPage(w http.ResponseWriter, r *http.Request) {
 	data := struct {
 		Title           string
 		ContentTemplate string
+		CurrentYear     int
 		*query.ReaderGroupDetailDTO
 	}{
 		Title:                group.Name,
 		ContentTemplate:      "group-detail-content",
+		CurrentYear:          time.Now().Year(),
 		ReaderGroupDetailDTO: group,
 	}
 
@@ -309,8 +311,8 @@ func (s *Server) handleCalendarGeneration(w http.ResponseWriter, r *http.Request
 	year := atoi(r.FormValue("year"))
 	currentYear := time.Now().Year()
 
-	if year != 0 && (year < currentYear || year > 2045) {
-		http.Error(w, fmt.Sprintf("year must be between %d and 2045", currentYear), http.StatusBadRequest)
+	if year != 0 && (year < 2000) {
+		http.Error(w, "year must be bigest 2000", http.StatusBadRequest)
 		return
 	}
 
@@ -338,7 +340,7 @@ func (s *Server) handleCalendarGeneration(w http.ResponseWriter, r *http.Request
 			GroupID: groupID,
 			Year:    year,
 		}
-		slog.Info("starting calendar "+action, "group_id", groupID, "year", year)
+		slog.Info(fmt.Sprintf("starting calendar %s", action), "group_id", groupID, "year", year)
 		startTime := time.Now()
 		buffer, err = s.App.Commands.GenerateCalendarForGroup.Handle(r.Context(), cmd)
 		duration := time.Since(startTime)

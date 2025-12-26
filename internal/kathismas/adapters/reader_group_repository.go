@@ -14,11 +14,12 @@ import (
 )
 
 type CalendarRefDB struct {
-	ID        string             `json:"id"`
-	Year      int                `json:"year"`
-	Calendar  domain.CalendarMap `json:"calendar"`
-	CreatedAt string             `json:"created_at"`
-	UpdatedAt string             `json:"updated_at"`
+	ID          string             `json:"id"`
+	Year        int                `json:"year"`
+	StartOffset int                `json:"start_offset"`
+	Calendar    domain.CalendarMap `json:"calendar"`
+	CreatedAt   string             `json:"created_at"`
+	UpdatedAt   string             `json:"updated_at"`
 }
 
 type ReaderGroupDB struct {
@@ -126,11 +127,12 @@ func (r *ReaderGroupRepository) marshalToDB(group *domain.ReaderGroup) ReaderGro
 	calendars := make([]CalendarRefDB, 0, len(group.Calendars))
 	for _, calendar := range group.Calendars {
 		calendars = append(calendars, CalendarRefDB{
-			ID:        calendar.ID.String(),
-			Year:      calendar.Year,
-			Calendar:  calendar.Calendar,
-			CreatedAt: calendar.CreatedAt.Format(time.RFC3339),
-			UpdatedAt: calendar.UpdatedAt.Format(time.RFC3339),
+			ID:          calendar.ID.String(),
+			Year:        calendar.Year,
+			StartOffset: calendar.StartOffset,
+			Calendar:    calendar.Calendar,
+			CreatedAt:   calendar.CreatedAt.Format(time.RFC3339),
+			UpdatedAt:   calendar.UpdatedAt.Format(time.RFC3339),
 		})
 	}
 
@@ -187,6 +189,7 @@ func (r *ReaderGroupRepository) unmarshalFromDB(dbGroup *ReaderGroupDB) (*domain
 		calendars = append(calendars, *domain.UnmarshallCalendarOfReader(
 			calendarID,
 			dbCalendar.Year,
+			dbCalendar.StartOffset,
 			dbCalendar.Calendar,
 			createdAt,
 			updatedAt,

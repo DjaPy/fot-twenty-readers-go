@@ -50,12 +50,13 @@ func (h RegenerateCalendarForGroupHandler) Handle(ctx context.Context, cmd Regen
 	removed := group.RemoveCalendarsByYear(year)
 	slog.Info("removed calendars for regeneration", "year", year, "count", removed)
 
-	buffer, calendarData, err := h.generator.GenerateForGroup(group, year)
+	startOffset := h.calculateStartOffset(group, year)
+	buffer, calendarData, err := h.generator.GenerateForGroup(year, startOffset)
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate calendar: %w", err)
 	}
 
-	calendar := domain.NewCalendarOfReader(year, calendarData)
+	calendar := domain.NewCalendarOfReader(year, startOffset, calendarData)
 
 	if err := group.AddCalendar(*calendar); err != nil {
 		return nil, fmt.Errorf("failed to add calendar to group: %w", err)
@@ -66,4 +67,13 @@ func (h RegenerateCalendarForGroupHandler) Handle(ctx context.Context, cmd Regen
 	}
 
 	return buffer, nil
+}
+
+func (h RegenerateCalendarForGroupHandler) calculateStartOffset(group *domain.ReaderGroup, year int) int {
+	for _, cal := range group.Calendars {
+		if cal.Year == year-1 {
+			return cal.CalculateNextStartOffset()
+		}
+	}
+	return group.StartOffset
 }

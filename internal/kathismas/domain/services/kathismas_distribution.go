@@ -37,7 +37,7 @@ func getCalendarMap(
 		count++
 	}
 	startLoopSecond := startZeroLoopSecond + len(zeroLoopSecond)
-	genLoopSecond := getGenLoop(startLoopSecond, numberDaysInYear+1)
+	genLoopSecond := getGenLoop(startLoopSecond, numberDaysInYear)
 	loopSecond = cycleSlice(genLoopSecond, loopFromTotalKathisma)
 	return loopSecond, zeroLoopSecond
 }

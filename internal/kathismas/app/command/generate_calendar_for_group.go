@@ -13,12 +13,13 @@ import (
 )
 
 type GenerateCalendarForGroup struct {
-	GroupID uuid.UUID
-	Year    int
+	GroupID     uuid.UUID
+	Year        int
+	StartOffset int
 }
 
 type CalendarGenerator interface {
-	GenerateForGroup(group *domain.ReaderGroup, year int) (*bytes.Buffer, domain.CalendarMap, error)
+	GenerateForGroup(year, startOffset int) (*bytes.Buffer, domain.CalendarMap, error)
 }
 
 type GenerateCalendarForGroupHandler struct {
@@ -50,13 +51,14 @@ func (h GenerateCalendarForGroupHandler) Handle(ctx context.Context, cmd Generat
 	if year == 0 {
 		year = time.Now().Year()
 	}
+	startOffset := h.calculateStartOffset(group, year, cmd.StartOffset)
 
-	buffer, calendarData, err := h.generator.GenerateForGroup(group, year)
+	buffer, calendarData, err := h.generator.GenerateForGroup(year, startOffset)
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate calendar: %w", err)
 	}
 
-	calendar := domain.NewCalendarOfReader(year, calendarData)
+	calendar := domain.NewCalendarOfReader(year, startOffset, calendarData)
 
 	if err := group.AddCalendar(*calendar); err != nil {
 		return nil, fmt.Errorf("failed to add calendar to group: %w", err)
@@ -67,4 +69,16 @@ func (h GenerateCalendarForGroupHandler) Handle(ctx context.Context, cmd Generat
 	}
 
 	return buffer, nil
+}
+
+func (h GenerateCalendarForGroupHandler) calculateStartOffset(group *domain.ReaderGroup, year, cmdStartOffset int) int {
+	if cmdStartOffset != 0 {
+		return cmdStartOffset
+	}
+	for _, cal := range group.Calendars {
+		if cal.Year == year-1 {
+			return cal.CalculateNextStartOffset()
+		}
+	}
+	return group.StartOffset
 }

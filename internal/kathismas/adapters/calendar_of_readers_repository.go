@@ -13,11 +13,12 @@ import (
 )
 
 type CalendarOfReaderDB struct {
-	ID        uuid.UUID `storm:"id"`
-	Year      int
-	Calendar  domain.CalendarMap
-	CreatedAt time.Time `storm:"index"`
-	UpdatedAt time.Time
+	ID          uuid.UUID `storm:"id"`
+	Year        int
+	StartOffset int
+	Calendar    domain.CalendarMap
+	CreatedAt   time.Time `storm:"index"`
+	UpdatedAt   time.Time
 }
 
 type CalendarOfReaderRepository struct {
@@ -41,6 +42,7 @@ func (cr CalendarOfReaderRepository) GetCalendar(id uuid.UUID) (*domain.Calendar
 	CalendarOfReader := domain.UnmarshallCalendarOfReader(
 		CalendarOfReaderFromDB.ID,
 		CalendarOfReaderFromDB.Year,
+		CalendarOfReaderFromDB.StartOffset,
 		CalendarOfReaderFromDB.Calendar,
 		CalendarOfReaderFromDB.CreatedAt,
 		CalendarOfReaderFromDB.UpdatedAt,

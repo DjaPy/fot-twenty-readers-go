@@ -134,8 +134,8 @@ func CreateCalendarForReaderToXLS(
 		Font:      &excelize.Font{Family: FontTrebuchet, Size: 14, Color: "000000"},
 		Fill:      excelize.Fill{Type: "pattern", Pattern: 1, Color: []string{"FF8080"}},
 		Border: []excelize.Border{
-			{Type: "top", Color: "000000", Style: 1},
-			{Type: "bottom", Color: "000000", Style: 1},
+			{Type: "top", Color: "000000", Style: 4},
+			{Type: "bottom", Color: "000000", Style: 4},
 		},
 	})
 
@@ -254,14 +254,16 @@ func NewCalendarGenerator() *CalendarGeneratorImpl {
 	return &CalendarGeneratorImpl{}
 }
 
-func (g *CalendarGeneratorImpl) GenerateForGroup(group *domain.ReaderGroup, year int) (*bytes.Buffer, domain.CalendarMap, error) {
+func (g *CalendarGeneratorImpl) GenerateForGroup(
+	year, startOffset int,
+) (*bytes.Buffer, domain.CalendarMap, error) {
 	if year == 0 {
 		year = time.Now().Year()
 	}
 
 	startDate := time.Date(year, time.January, 1, 0, 0, 0, 0, time.UTC)
 	calendarTable := services.GetCalendarYear(startDate, year)
-	calendarKathismas := services.CreateCalendarForGroup(group.StartOffset, year)
+	calendarKathismas := services.CreateCalendarForGroup(startOffset, year)
 
 	calendarData := convertToCalendarMap(calendarKathismas)
 
