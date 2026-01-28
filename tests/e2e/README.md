@@ -34,9 +34,9 @@ E2E_HEADLESS=false go test -v ./tests/e2e/...
 
 ## Environment Variables
 
-- `E2E_BASE_URL` - Base URL of the application (default: `http://localhost`)
+- `E2E_BASE_URL` - Base URL of the application (default: `http://localhost:8080`)
 - `E2E_USERNAME` - Basic Auth username (default: `admin`)
-- `E2E_PASSWORD` - Basic Auth password (default: `test123`)
+- `E2E_PASSWORD` - Basic Auth password (default: `admin`)
 - `E2E_HEADLESS` - Run browser in headless mode (default: `true`)
 
 ## Test Structure

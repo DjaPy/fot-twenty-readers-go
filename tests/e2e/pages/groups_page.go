@@ -20,29 +20,52 @@ func NewGroupsPage(page playwright.Page, baseURL string) *GroupsPage {
 
 func (p *GroupsPage) Navigate() error {
 	_, err := p.page.Goto(fmt.Sprintf("%s/groups", p.baseURL))
-	return err
+	if err != nil {
+		return fmt.Errorf("navigate to groups: %w", err)
+	}
+	return nil
 }
 
 func (p *GroupsPage) WaitForLoad() error {
-	return p.page.WaitForLoadState(playwright.PageWaitForLoadStateOptions{
+	err := p.page.WaitForLoadState(playwright.PageWaitForLoadStateOptions{
 		State: playwright.LoadStateNetworkidle,
 	})
+	if err != nil {
+		return fmt.Errorf("wait for load: %w", err)
+	}
+	return nil
 }
 
 func (p *GroupsPage) GetTitle() (string, error) {
-	return p.page.Title()
+	title, err := p.page.Title()
+	if err != nil {
+		return "", fmt.Errorf("get page title: %w", err)
+	}
+	return title, nil
 }
 
 func (p *GroupsPage) FillGroupName(name string) error {
-	return p.page.Fill("input#name", name)
+	err := p.page.Locator("input#name").Fill(name)
+	if err != nil {
+		return fmt.Errorf("get group name: %w", err)
+	}
+	return nil
 }
 
 func (p *GroupsPage) FillStartOffset(offset string) error {
-	return p.page.Fill("input#start_offset", offset)
+	err := p.page.Locator("input#start_offset").Fill(offset)
+	if err != nil {
+		return fmt.Errorf("get group start_offset: %w", err)
+	}
+	return nil
 }
 
 func (p *GroupsPage) SubmitCreateGroup() error {
-	return p.page.Click("button:has-text('Создать группу')")
+	err := p.page.Locator("button:has-text('Создать группу')").Click()
+	if err != nil {
+		return fmt.Errorf("create group: %w", err)
+	}
+	return nil
 }
 
 func (p *GroupsPage) CreateGroup(name, startOffset string) error {
@@ -58,7 +81,9 @@ func (p *GroupsPage) CreateGroup(name, startOffset string) error {
 		return fmt.Errorf("submit create group: %w", err)
 	}
 
-	if _, err := p.page.WaitForSelector(fmt.Sprintf("h3:text('%s')", name), playwright.PageWaitForSelectorOptions{
+	groupLocator := p.page.Locator(fmt.Sprintf("h3:text('%s')", name))
+	if err := groupLocator.WaitFor(playwright.LocatorWaitForOptions{
+		State:   playwright.WaitForSelectorStateVisible,
 		Timeout: playwright.Float(5000),
 	}); err != nil {
 		return fmt.Errorf("wait for group to appear: %w", err)
@@ -71,7 +96,7 @@ func (p *GroupsPage) HasGroupInList(groupName string) (bool, error) {
 	locator := p.page.Locator(fmt.Sprintf("text=%s", groupName))
 	count, err := locator.Count()
 	if err != nil {
-		return false, err
+		return false, fmt.Errorf("count groups: %w", err)
 	}
 	return count > 0, nil
 }
@@ -86,7 +111,11 @@ func (p *GroupsPage) ClickGroupDetails(groupName string) error {
 	}
 
 	detailsLink := p.page.Locator("a:has-text('Подробнее')").First()
-	return detailsLink.Click()
+	err := detailsLink.Click()
+	if err != nil {
+		return fmt.Errorf("click group details: %w", err)
+	}
+	return nil
 }
 
 func (p *GroupsPage) DeleteGroup(groupName string) error {
@@ -104,8 +133,13 @@ func (p *GroupsPage) DeleteGroup(groupName string) error {
 		return fmt.Errorf("click delete: %w", err)
 	}
 
-	p.page.WaitForTimeout(1500)
-
+	errWait := groupCard.WaitFor(playwright.LocatorWaitForOptions{
+		State:   playwright.WaitForSelectorStateDetached,
+		Timeout: playwright.Float(5000),
+	})
+	if errWait != nil {
+		return fmt.Errorf("wait for group to appear: %w", errWait)
+	}
 	return nil
 }
 
@@ -113,7 +147,7 @@ func (p *GroupsPage) GroupExists(groupName string) (bool, error) {
 	locator := p.page.Locator(fmt.Sprintf("#groups-list h3:has-text('%s')", groupName))
 	count, err := locator.Count()
 	if err != nil {
-		return false, err
+		return false, fmt.Errorf("check group exists: %w", err)
 	}
 	return count > 0, nil
 }

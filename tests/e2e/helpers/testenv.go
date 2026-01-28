@@ -15,7 +15,7 @@ type TestEnv struct {
 
 func NewTestEnv() *TestEnv {
 	return &TestEnv{
-		BaseURL:  getEnv("E2E_BASE_URL", "http://localhost"),
+		BaseURL:  getEnv("E2E_BASE_URL", "http://localhost:8080"),
 		Username: getEnv("E2E_USERNAME", "admin"),
 		Password: getEnv("E2E_PASSWORD", "admin"),
 	}
